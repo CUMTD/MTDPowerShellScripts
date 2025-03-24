@@ -37,9 +37,16 @@ jobs:
         shell: bash
 
       - name: Zip Module for Release
-        run: |
-          Compress-Archive -Path MTD-AdminTools.psd1, MTD-AdminTools.psm1, Public -DestinationPath MTD-AdminTools.zip
         shell: pwsh
+        run: |
+          $zipName = "MTD-AdminTools-${{ steps.get_version.outputs.version }}.zip"
+
+          Compress-Archive -Path `
+            'MTD-AdminTools.psd1', `
+            'MTD-AdminTools.psm1', `
+            'Public', `
+            'Scripts/Install-MTDAdminTools.ps1' `
+            -DestinationPath $zipName
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
@@ -48,12 +55,13 @@ jobs:
           path: |
             MTD-AdminTools.psd1
             MTD-AdminTools.psm1
+            Scripts/Install-MTDAdminTools.ps1
             Public/
           retention-days: 5
 
       - name: Upload ZIP to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: MTD-AdminTools.zip
+          files: MTD-AdminTools-${{ steps.get_version.outputs.version }}.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
