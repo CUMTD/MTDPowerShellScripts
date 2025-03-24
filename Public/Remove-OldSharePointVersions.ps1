@@ -12,6 +12,9 @@
 .PARAMETER DaysToKeep
     Number of days to keep. Older versions will be deleted. Default is 365.
 
+.PARAMETER LaunchStorageExplorer
+	Launches the SharePoint Storage Explorer after the script completes. Default is false.
+
 .EXAMPLE
     Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -DaysToKeep 180 -WhatIf
 
@@ -21,6 +24,11 @@
     Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -Confirm
 
     Prompts for confirmation before removing each old version.
+
+.EXAMPLE
+    Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -LaunchStorageExplorer
+
+    Launch the SharePoint Storage Explorer after the script completes.
 
 .NOTES
     Author: Ryan Blackman
@@ -33,7 +41,10 @@ function Remove-OldSharePointVersions {
 		[string]$SiteUrl,
 
 		[Parameter(Mandatory = $false)]
-		[int]$DaysToKeep = 365
+		[int]$DaysToKeep = 365,
+
+		[Parameter(Mandatory = $false)]
+		[switch]$LaunchStorageExplorer = $false
 	)
 
 	Write-Host "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
@@ -82,6 +93,12 @@ function Remove-OldSharePointVersions {
 		}
 
 		Write-Host "✅ Finished cleaning: $($list.Title)"
+	}
+
+	if ($LaunchStorageExplorer) {
+		Write-Host "🚀 Launching SharePoint Storage Explorer..." -ForegroundColor Cyan
+		$launchPath = "$($SiteUrl.TrimEnd('/'))/_layouts/15/storman.aspx"
+		Start-Process $launchPath
 	}
 
 	Write-Host "`n🎉 Cleanup complete for $SiteUrl" -ForegroundColor Green
