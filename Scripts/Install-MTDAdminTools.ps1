@@ -1,5 +1,5 @@
 param (
-	[string]$TargetPath = "$env:ProgramFiles\\WindowsPowerShell\\Modules\\MTD-AdminTools"
+	[string]$TargetPath = "$env:ProgramFiles\WindowsPowerShell\Modules\MTD-AdminTools"
 )
 
 Write-Host "🔧 Installing MTD-AdminTools module to: $TargetPath" -ForegroundColor Cyan
@@ -25,15 +25,18 @@ if (Test-Path $TargetPath) {
 	Remove-Item -Path $TargetPath -Recurse -Force
 }
 
-# Create target directory
-New-Item -ItemType Directory -Path $TargetPath -Force | Out-Null
+# Ensure target directory exists
+if (-not (Test-Path $TargetPath)) {
+	Write-Host "Creating target directory: $TargetPath" -ForegroundColor Cyan
+	New-Item -ItemType Directory -Path $TargetPath -Force | Out-Null
+}
 
 # Copy module files
 $sourcePath = $PSScriptRoot
 $itemsToCopy = @(
 	"MTD-AdminTools.psd1",
 	"MTD-AdminTools.psm1",
-	"Public",
+	"Public"
 	# "Private"
 )
 
