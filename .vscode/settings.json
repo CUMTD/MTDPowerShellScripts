@@ -1,0 +1,52 @@
+{
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.quickSuggestions": {
+			"strings": true
+		},
+		"editor.suggest.insertMode": "replace"
+	},
+	"[markdown]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode",
+		"editor.formatOnSave": true,
+		"editor.quickSuggestions": {
+			"strings": true
+		},
+		"editor.suggest.insertMode": "replace"
+	},
+	"[powershell]": {
+		"editor.defaultFormatter": "ms-vscode.powershell",
+		"editor.formatOnSave": true,
+		"editor.quickSuggestions": {
+			"strings": true
+		},
+		"editor.suggest.insertMode": "replace"
+	},
+	"[yaml]": {
+		"editor.defaultFormatter": "redhat.vscode-yaml",
+		"editor.formatOnSave": true,
+		"editor.quickSuggestions": {
+			"strings": true
+		},
+		"editor.suggest.insertMode": "replace"
+	},
+	"cSpell.words": [
+		"commitish",
+		"diffable",
+		"pwsh",
+		"softprops"
+	],
+	"editor.codeActionsOnSave": {
+		"source.organizeImports": "always"
+	},
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false,
+	"editor.tabSize": 4,
+	"files.eol": "\n",
+	"files.insertFinalNewline": true,
+	"files.trimTrailingWhitespace": true,
+	"powershell.codeFormatting.ignoreOneLineBlock": true,
+	"powershell.codeFormatting.preset": "OTBS",
+	"powershell.codeFormatting.useCorrectCasing": true
+}

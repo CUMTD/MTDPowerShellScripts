@@ -1,0 +1,35 @@
+# PowerShell-generated files
+*.ps1xml
+*.pssc
+*.psd1.bak
+*.tmp
+
+# User-specific files
+*.swp
+*.swo
+*.bak
+*.log
+
+# VS Code
+.history/
+
+# PowerShell metadata
+*.cache
+*.ps1~*
+
+# Output files
+*.zip
+*.nupkg
+
+# GitHub artifacts and temp files
+*.tgz
+*.gz
+*.tar
+*.7z
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/

@@ -1,0 +1,60 @@
+name: Build and Release PowerShell Module
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # ✅ Allows committing back to the repo
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Extract Version from Tag
+        id: get_version
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag -replace '^v', ''
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Update ModuleVersion in .psd1
+        run: pwsh scripts/Update-ManifestVersion.ps1 -NewVersion "${{ steps.get_version.outputs.version }}"
+        shell: pwsh
+
+      - name: Commit updated .psd1 file
+        run: |
+          git config user.name "MTD Automation"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add MTD-AdminTools.psd1
+          git commit -m "Update ModuleVersion to ${{ steps.get_version.outputs.version }}"
+          git push origin HEAD:${{ github.event.release.target_commitish }}
+        shell: bash
+
+      - name: Zip Module for Release
+        run: |
+          Compress-Archive -Path MTD-AdminTools.psd1, MTD-AdminTools.psm1, Public, Private -DestinationPath MTD-AdminTools.zip
+        shell: pwsh
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MTD-AdminTools
+          path: |
+            MTD-AdminTools.psd1
+            MTD-AdminTools.psm1
+            Public/
+            Private/
+          retention-days: 5
+
+      - name: Upload ZIP to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: MTD-AdminTools.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,43 @@
+# Root config file
+root = true
+
+# Applies to all files by default
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+
+# Use tabs for indentation
+indent_style = tab
+indent_size = tab
+
+# Add newlines at end of file
+insert_final_newline = true
+
+# Unix-style line endings (LF)
+end_of_line = lf
+
+# Applies specifically to PowerShell scripts
+[*.ps1]
+indent_style = tab
+indent_size = tab
+max_line_length = 120
+
+# PowerShell module and data files
+[*.psm1]
+indent_style = tab
+indent_size = tab
+
+[*.psd1]
+indent_style = tab
+indent_size = tab
+
+# Markdown (README, docs)
+[*.md]
+trim_trailing_whitespace = false
+
+# YAML (GitHub Actions)
+[*.yml]
+indent_style = space
+indent_size = 2
