@@ -12,7 +12,7 @@
 	RootModule                 = 'MTD-AdminTools.psm1'
 
 	# Version number of this module.
-	ModuleVersion = '1.0.0'
+	ModuleVersion = '0.1.0'
 
 	# Supported PSEditions
 	# CompatiblePSEditions = @()
@@ -40,7 +40,7 @@
 	)
 
 	RequiredModules            = @(
-		@{ ModuleName = 'PnP.PowerShell'; ModuleVersion = '1.0.0' }
+		@{ ModuleName = 'PnP.PowerShell'; ModuleVersion = '0.1.0' }
 	)
 
 	# Name of the PowerShell host required by this module
