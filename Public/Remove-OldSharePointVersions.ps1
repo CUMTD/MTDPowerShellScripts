@@ -1,25 +1,33 @@
 <#
 .SYNOPSIS
-  Removes document versions older than a specified age from all document libraries in a site.
+    Removes document versions older than a specified age from all document libraries in a site.
 
 .DESCRIPTION
-  Connects to SharePoint Online using PnP PowerShell and deletes all non-current file versions older than X days.
+    Connects to SharePoint Online using PnP PowerShell and deletes all non-current file versions
+    older than X days. Supports -WhatIf and -Confirm so you can preview or confirm each removal.
 
 .PARAMETER SiteUrl
-  The full URL to the SharePoint site to scan (e.g. https://ridemtd.sharepoint.com/sites/YOURSITE).
+    The full URL to the SharePoint site to scan (e.g., https://tenant.sharepoint.com/sites/MySite).
 
 .PARAMETER DaysToKeep
-  Number of days to keep. Older versions will be deleted. Default is 365.
+    Number of days to keep. Older versions will be deleted. Default is 365.
 
 .EXAMPLE
-  Cleanup-OldSharePointVersions -SiteUrl "https://ridemtd.sharepoint.com/sites/YOURSITE" -DaysToKeep 180
+    Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -DaysToKeep 180 -WhatIf
+
+    Shows which file versions would be removed but doesn't actually remove them.
+
+.EXAMPLE
+    Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -Confirm
+
+    Prompts for confirmation before removing each old version.
 
 .NOTES
-  Author: Ryan Blackman
-  Created: 2025-03-19
+    Author: Ryan Blackman
+    Created: 2025-03-19
 #>
 function Remove-OldSharePointVersions {
-	[CmdletBinding()]
+	[CmdletBinding(SupportsShouldProcess = $true)]
 	param (
 		[Parameter(Mandatory = $true)]
 		[string]$SiteUrl,
@@ -41,23 +49,33 @@ function Remove-OldSharePointVersions {
 		$items = Get-PnPListItem -List $list -PageSize 1000
 
 		foreach ($item in $items) {
+			# Retrieve the Versions collection from the item
 			$versions = Get-PnPProperty -ClientObject $item -Property Versions
-			$oldVersions = @(
-				$versions | Where-Object {
-					$_.Created -lt $cutoffDate -and $_.IsCurrentVersion -eq $false
-				}
-			)
+
+			# Identify old, non-current versions
+			$oldVersions = $versions | Where-Object {
+				$_.Created -lt $cutoffDate -and $_.IsCurrentVersion -eq $false
+			}
 
 			foreach ($version in $oldVersions) {
-				try {
-					Write-Host "🧹 Deleting version from $($version.Created) for $($item.FieldValues.FileLeafRef)" -ForegroundColor Gray
-					$version.DeleteObject()
-				}
-				catch {
-					Write-Warning "❌ Failed to delete version: $($_.Exception.Message)"
+				# Use ShouldProcess for -WhatIf / -Confirm
+				$versionDate = $version.Created
+				$fileName = $item.FieldValues.FileLeafRef
+
+				if ($PSCmdlet.ShouldProcess(
+						"$versionDate - File: $fileName",
+						"Delete old version (created before $($cutoffDate.ToShortDateString()))"
+					)) {
+					try {
+						Write-Host "🧹 Deleting version from $versionDate for $fileName" -ForegroundColor Gray
+						$version.DeleteObject()
+					} catch {
+						Write-Warning "❌ Failed to delete version: $($_.Exception.Message)"
+					}
 				}
 			}
 
+			# If we queued deletions, commit them now
 			if ($oldVersions.Count -gt 0) {
 				Invoke-PnPQuery
 			}

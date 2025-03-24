@@ -9,38 +9,39 @@
 @{
 
 	# Script module or binary module file associated with this manifest.
-	RootModule                 = 'MTD-AdminTools.psm1'
+	RootModule        = 'MTD-AdminTools.psm1'
 
 	# Version number of this module.
-	ModuleVersion = '0.1.1'
+	ModuleVersion     = '0.1.1'
 
 	# Supported PSEditions
 	# CompatiblePSEditions = @()
 
 	# ID used to uniquely identify this module
-	GUID                       = '38bcdc81-47f4-41e3-9899-bc809aca36b2'
+	GUID              = '38bcdc81-47f4-41e3-9899-bc809aca36b2'
 
 	# Author of this module
-	Author                     = 'Ryan Blackman'
+	Author            = 'Ryan Blackman'
 
 	# Company or vendor of this module
-	CompanyName                = 'MTD'
+	CompanyName       = 'MTD'
 
 	# Copyright statement for this module
-	Copyright                  = '(c) Ryan Blackman. All rights reserved.'
+	Copyright         = '(c) Ryan Blackman. All rights reserved.'
 
 	# Description of the functionality provided by this module
-	Description                = 'PowerShell tools for managing MTD''s tech.'
+	Description       = 'PowerShell tools for managing MTD''s tech.'
 
 	# Minimum version of the PowerShell engine required by this module
-	PowerShellVersion          = '5.1'
+	PowerShellVersion = '5.1'
 
-	ExternalModuleDependencies = @(
+	RequiredModules   = @(
+		'Microsoft.Graph.Authentication',
+		'Microsoft.Graph.DeviceManagement',
+		'Microsoft.Graph.Identity.SignIns',
+		'Microsoft.Graph.Reports',
+		'Microsoft.Graph.Users',
 		'PnP.PowerShell'
-	)
-
-	RequiredModules            = @(
-		@{ ModuleName = 'PnP.PowerShell'; ModuleVersion = '0.1.1' }
 	)
 
 	# Name of the PowerShell host required by this module
@@ -77,16 +78,20 @@
 	# NestedModules = @()
 
 	# Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-	FunctionsToExport          = '*'
+	FunctionsToExport = @(
+		'Find-LargeSharePointFiles',
+		'Remove-OldSharePointVersions',
+		'Remove-StaleIntueDevices'
+	)
 
 	# Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-	CmdletsToExport            = '*'
+	CmdletsToExport   = @()
 
 	# Variables to export from this module
-	VariablesToExport          = '*'
+	VariablesToExport = @()
 
 	# Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-	AliasesToExport            = '*'
+	AliasesToExport   = @()
 
 	# DSC resources to export from this module
 	# DscResourcesToExport = @()
@@ -98,13 +103,12 @@
 	# FileList = @()
 
 
-	PrivateData                = @{
+	PrivateData       = @{
 		PSData = @{
-			Tags                     = @('SharePoint', 'PnP', 'MTD', 'AdminTools')
-			LicenseUri               = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts/blob/main/LICENSE'
-			ProjectUri               = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts'
-			ReleaseNotes             = 'Initial release. Includes Cleanup-OldSharePointVersions.'
-			RequireLicenseAcceptance = $true
+			Tags         = @('Entra ID', 'SharePoint', 'PnP', 'MTD', 'AdminTools')
+			LicenseUri   = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts/blob/main/LICENSE'
+			ProjectUri   = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts'
+			ReleaseNotes = 'Initial release. Includes Cleanup-OldSharePointVersions.'
 		}
 	}
 }

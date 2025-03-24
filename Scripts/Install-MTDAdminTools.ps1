@@ -34,7 +34,7 @@ $itemsToCopy = @(
 	"MTD-AdminTools.psd1",
 	"MTD-AdminTools.psm1",
 	"Public",
-	"Private"
+	# "Private"
 )
 
 foreach ($item in $itemsToCopy) {
