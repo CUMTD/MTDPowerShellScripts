@@ -101,8 +101,8 @@
 	PrivateData                = @{
 		PSData = @{
 			Tags                     = @('SharePoint', 'PnP', 'MTD', 'AdminTools')
-			LicenseUri               = 'https://github.com/orgs/CUMTD/PowerShellManagementScripts/blob/main/LICENSE'
-			ProjectUri               = 'https://github.com/orgs/CUMTD/PowerShellManagementScripts'
+			LicenseUri               = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts/blob/main/LICENSE'
+			ProjectUri               = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts'
 			ReleaseNotes             = 'Initial release. Includes Cleanup-OldSharePointVersions.'
 			RequireLicenseAcceptance = $true
 		}

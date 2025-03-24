@@ -4,8 +4,8 @@ Get-ChildItem -Path "$PSScriptRoot/Public" -Filter *.ps1 | ForEach-Object {
 }
 
 # Optional: Dot-source private helpers
-if (Test-Path "$PSScriptRoot/Private") {
-	Get-ChildItem -Path "$PSScriptRoot/Private" -Filter *.ps1 | ForEach-Object {
-		. $_.FullName
-	}
-}
+# if (Test-Path "$PSScriptRoot/Private") {
+# 	Get-ChildItem -Path "$PSScriptRoot/Private" -Filter *.ps1 | ForEach-Object {
+# 		. $_.FullName
+# 	}
+# }
