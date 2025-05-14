@@ -1,139 +1,114 @@
-function Set-SharePointRetention {
-	<#
-    .SYNOPSIS
-    Configure version‐history retention on SharePoint Online sites.
+#Requires -Version 7.0
+#Requires -Modules PnP.PowerShell
 
-    .DESCRIPTION
-    Connects to the SPO Admin Center, then either:
-      - Enables intelligent (automatic) trimming of old versions, or
-      - Applies manual version/age limits to document libraries.
+Import-Module PnP.PowerShell
 
-    You must choose *one* mode:
-      - **Auto**: supply `-EnableAutoExpirationVersionTrim`
-      - **Custom**: supply at least one of `-ExpireVersionsAfterDays`, `-MajorVersionLimit`, `-MajorWithMinorVersionsLimit`
+<#
+.SYNOPSIS
+    Configure document-library version retention via PnP.
 
-    By default, settings are applied to existing libraries; use the switches to include new libraries.
+.PARAMETER SharePointAdminUrl
+    SPO Admin center URL (e.g. https://contoso-admin.sharepoint.com). Required.
 
-    .PARAMETER SharePointAdminUrl
-    The SPO Admin Center URL (e.g. https://contoso-admin.sharepoint.com). **Required.**
+.PARAMETER EnableAutoExpirationVersionTrim
+    (Auto mode) Turn on Microsoft's automatic trimming of old versions.
 
-    .PARAMETER EnableAutoExpirationVersionTrim
-    (Auto mode) Turn on Microsoft’s automatic version-trim policy. Mutually exclusive with the Custom parameters.
+.PARAMETER ExpireVersionsAfterDays
+    (Custom mode) Purge versions older than this many days.
 
-    .PARAMETER ExpireVersionsAfterDays
-    (Custom mode) Delete versions older than this many days.
-
-    .PARAMETER MajorVersionLimit
+.PARAMETER MajorVersions
     (Custom mode) Keep only this many major versions.
 
-    .PARAMETER MajorWithMinorVersionsLimit
-    (Custom mode) Keep all minor versions for the most recent N major versions.
+.PARAMETER MajorWithMinorVersions
+    (Custom mode) Keep minor versions for the most recent N major versions.
 
-    .PARAMETER ApplyToExistingDocumentLibraries
-    Apply settings to libraries that already exist (default).
+.PARAMETER ApplyToExistingDocumentLibraries
+    Apply policy to existing document libraries.
 
-    .PARAMETER ApplyToNewDocumentLibraries
-    Also apply settings to libraries created *after* this change.
+.PARAMETER ApplyToNewDocumentLibraries
+    Also apply policy to libraries created after this change.
 
-    .PARAMETER SiteUrl
-    A single site URL. If omitted, the change is applied to all sites in the tenant.
+.PARAMETER SiteUrl
+    A single site URL. If omitted, the policy is applied to *all* sites.
 
-    .EXAMPLE
-    # Automatic trimming on all sites, existing and new libs
+.EXAMPLE
+    # Auto-trim on all sites, including new libs
     Set-SharePointRetention `
       -SharePointAdminUrl https://contoso-admin.sharepoint.com `
       -EnableAutoExpirationVersionTrim `
       -ApplyToNewDocumentLibraries
 
-    .EXAMPLE
-    # Keep max 100 majors & expire after 180 days on a specific site
+.EXAMPLE
+    # Custom: keep 100 majors & expire after 180 days on one site
     Set-SharePointRetention `
       -SharePointAdminUrl https://contoso-admin.sharepoint.com `
-      -SiteUrl https://contoso.sharepoint.com/sites/TeamA `
-      -MajorVersionLimit 100 `
-      -ExpireVersionsAfterDays 180
+      -SiteUrl https://contoso.sharepoint.com/sites/Team `
+      -MajorVersions 100 `
+      -ExpireVersionsAfterDays 180 `
+      -ApplyToExistingDocumentLibraries
+#>
+#Requires -Version 7.0
+#Requires -Modules PnP.PowerShell
 
-    .NOTES
-    Needs the SharePoint Online Management Shell module.
-    #>
+Import-Module PnP.PowerShell
+
+function Set-SharePointRetention {
 	[CmdletBinding(DefaultParameterSetName = 'Auto', SupportsShouldProcess = $true)]
 	param (
 		[Parameter(Mandatory = $true)]
+		[ValidateNotNullOrEmpty()]
 		[string]$SharePointAdminUrl,
 
-		# Auto mode
 		[Parameter(Mandatory = $true, ParameterSetName = 'Auto')]
 		[switch]$EnableAutoExpirationVersionTrim,
 
-		# Custom mode (at least one required)
 		[Parameter(ParameterSetName = 'Custom')]
-		[int]$ExpireVersionsAfterDays,
+		[ValidateRange(0, [int]::MaxValue)]
+		[int]$ExpireVersionsAfterDays = [int]::MaxValue,
 
 		[Parameter(ParameterSetName = 'Custom')]
-		[int]$MajorVersionLimit,
+		[ValidateRange(1, [int]::MaxValue)]
+		[int]$MajorVersions = [int]::MaxValue,
 
 		[Parameter(ParameterSetName = 'Custom')]
-		[int]$MajorWithMinorVersionsLimit,
+		[ValidateRange(0, [int]::MaxValue)]
+		[int]$MajorWithMinorVersions = [int]::MaxValue,
 
-		# These apply in both modes
 		[switch]$ApplyToExistingDocumentLibraries,
 		[switch]$ApplyToNewDocumentLibraries,
 
 		[string]$SiteUrl
 	)
 
-	if ($PSCmdlet.ParameterSetName -eq 'Custom' -and
-		-not ($PSBoundParameters.ContainsKey('ExpireVersionsAfterDays') `
-				-or $PSBoundParameters.ContainsKey('MajorVersionLimit') `
-				-or $PSBoundParameters.ContainsKey('MajorWithMinorVersionsLimit'))
-	) {
-		throw "In Custom mode you must specify at least one of ExpireVersionsAfterDays, MajorVersionLimit, or MajorWithMinorVersionsLimit."
-	}
+	Write-Host "🔗 Connecting to admin: $SharePointAdminUrl" -ForegroundColor Cyan
+	Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
 
-	Write-Host "Connecting to SPO Admin Center at $SharePointAdminUrl…" -ForegroundColor Cyan
-	Connect-SPOService -Url $SharePointAdminUrl
-
-	# Gather sites
-	$siteUrls = if ($SiteUrl) {
-		Write-Host "Targeting specific site: $SiteUrl" -ForegroundColor Cyan
-		, $SiteUrl
-	} else {
-		Write-Host "Retrieving all site collections…" -ForegroundColor Cyan
-		$all = Get-SPOSite -Limit All | Select-Object -ExpandProperty Url
-		Write-Host "Found $($all.Count) sites." -ForegroundColor Green
-		$all
-	}
-
-	# Default to existing libs if none specified
-	if (-not ($ApplyToExistingDocumentLibraries -or $ApplyToNewDocumentLibraries)) {
-		$ApplyToExistingDocumentLibraries = $true
-	}
+	# Build site list
+	$siteUrls = if ($SiteUrl) { @($SiteUrl) }
+	else { (Get-PnPTenantSite).Url }
 
 	foreach ($url in $siteUrls) {
-		if ($PSCmdlet.ShouldProcess("Site: $url", "Configure retention policy")) {
-			Write-Host "Processing $url…" -ForegroundColor Yellow
-
-			# Build param splat
-			$splat = @{
-				Identity                        = $url
-				# Auto if in Auto set
-				EnableAutoExpirationVersionTrim = ($PSCmdlet.ParameterSetName -eq 'Auto')
-			}
-
-			if ($ApplyToExistingDocumentLibraries) { $splat.ApplyToExistingDocumentLibraries = $true }
-			if ($ApplyToNewDocumentLibraries) { $splat.ApplyToNewDocumentLibraries = $true }
-
-			if ($PSCmdlet.ParameterSetName -eq 'Custom') {
-				$splat.EnableAutoExpirationVersionTrim = $false
-				if ($PSBoundParameters.ContainsKey('ExpireVersionsAfterDays')) { $splat.ExpireVersionsAfterDays = $ExpireVersionsAfterDays }
-				if ($PSBoundParameters.ContainsKey('MajorVersionLimit')) { $splat.MajorVersionLimit = $MajorVersionLimit }
-				if ($PSBoundParameters.ContainsKey('MajorWithMinorVersionsLimit')) { $splat.MajorWithMinorVersionsLimit = $MajorWithMinorVersionsLimit }
-			}
-
-			Set-SPOSite @splat
-			Write-Host "✔ Done for $url" -ForegroundColor Green
+		if (-not $PSCmdlet.ShouldProcess($url, 'Configure retention policy')) {
+			continue
 		}
+
+		Write-Host "⚙️  Applying retention on $url" -ForegroundColor Yellow
+		Connect-PnPOnline -Url $url -UseWebLogin
+
+		# Always include the three version params in Custom mode (they have defaults)
+		$splat = @{
+			EnableAutoExpirationVersionTrim = $EnableAutoExpirationVersionTrim.IsPresent
+			ExpireVersionsAfterDays         = $ExpireVersionsAfterDays
+			MajorVersions                   = $MajorVersions
+			MajorWithMinorVersions          = $MajorWithMinorVersions
+		}
+
+		if ($ApplyToExistingDocumentLibraries) { $splat.ApplyToExistingDocumentLibraries = $true }
+		if ($ApplyToNewDocumentLibraries) { $splat.ApplyToNewDocumentLibraries = $true }
+
+		Set-PnPSiteVersionPolicy @splat
+		Write-Host "✔ Done for $url" -ForegroundColor Green
 	}
 
-	Write-Host "All done." -ForegroundColor Cyan
+	Write-Host "🎉 All done." -ForegroundColor Cyan
 }

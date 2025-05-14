@@ -1,8 +1,5 @@
-# Requires: ActiveDirectory, ExchangeOnlineManagement, Microsoft.Graph modules
-Import-Module ActiveDirectory
-Import-Module ExchangeOnlineManagement
-Import-Module Microsoft.Graph.Identity.Governance
-
+#Requires -Version 7.0
+#
 function Write-Log {
 	param (
 		[Parameter(Mandatory)][string]$Message,
@@ -134,6 +131,7 @@ Author: Ryan Blackman
 Created: 2025-05-14
 #>
 function Disable-MtdUser {
+
 	[CmdletBinding(SupportsShouldProcess = $true)]
 	param (
 		[Parameter(Mandatory)]

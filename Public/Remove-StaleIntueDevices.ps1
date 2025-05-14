@@ -1,3 +1,5 @@
+#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Removes stale Intune devices from Microsoft Endpoint Manager (Intune).

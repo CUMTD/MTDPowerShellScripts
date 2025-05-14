@@ -1,3 +1,5 @@
+#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Scans all SharePoint Online sites and reports files larger than a specified size.
@@ -27,72 +29,56 @@
 .NOTES
     Author: Ryan Blackman
     Created: 2025-03-19
+	Updated: 2025-05-14
 #>
 function Get-LargeSharePointFiles {
-	[CmdletBinding()]
+	[CmdletBinding(DefaultParameterSetName = 'Single')]
 	param (
-		[Parameter(Mandatory = $false)]
-		[string]$SharePointAdminUrl, # Required if scanning all sites
+		[Parameter(ParameterSetName = 'Single', Mandatory = $true)]
+		[ValidateNotNullOrEmpty()]
+		[string]$SiteUrl,
 
-		[Parameter(Mandatory = $false)]
-		[string]$SiteUrl, # If provided, scan only this one site
+		[Parameter(ParameterSetName = 'Admin', Mandatory = $true)]
+		[ValidateNotNullOrEmpty()]
+		[string]$SharePointAdminUrl,
 
-		[Parameter(Mandatory = $false)]
+		[Parameter()]
+		[ValidateRange(1, [int]::MaxValue)]
 		[int]$SizeThresholdMB = 500
 	)
 
-	if (-not $SiteUrl) {
-		# If the user didn't specify a single site, ensure we have the admin site for a tenant-wide scan
-		if (-not $SharePointAdminUrl) {
-			Write-Error "Either -SiteUrl or -SharePointAdminUrl must be provided."
-			return
-		}
-
-		# 1) Connect to the tenant admin site
-		Write-Host "Connecting to SharePoint Admin: $SharePointAdminUrl" -ForegroundColor Cyan
+	# figure out which set of sites to scan
+	if ($PSCmdlet.ParameterSetName -eq 'Admin') {
+		Write-Verbose "Connecting to tenant admin: $SharePointAdminUrl"
 		Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
-
-		# 2) Retrieve all site collections
-		$sites = Get-PnPTenantSite
-
-		# 3) Scan each site for large files
-		foreach ($site in $sites) {
-			ScanSiteForLargeFiles -SiteToScan $site.Url -SizeThresholdMB $SizeThresholdMB
-		}
+		$targetSites = (Get-PnPTenantSite).Url
 	} else {
-		# We have a specific site
-		ScanSiteForLargeFiles -SiteToScan $SiteUrl -SizeThresholdMB $SizeThresholdMB
+		$targetSites = , $SiteUrl
 	}
-}
 
-function ScanSiteForLargeFiles {
-	param (
-		[Parameter(Mandatory = $true)]
-		[string]$SiteToScan,
+	$thresholdBytes = $SizeThresholdMB * 1MB
+	Write-Verbose "Filtering for files > $SizeThresholdMB MB ($thresholdBytes bytes)"
 
-		[Parameter(Mandatory = $true)]
-		[int]$SizeThresholdMB
-	)
+	foreach ($url in $targetSites) {
+		Write-Host "🔍 Scanning $url" -ForegroundColor Cyan
+		Connect-PnPOnline -Url $url -UseWebLogin
 
-	Write-Host "🔍 Scanning $SiteToScan" -ForegroundColor Cyan
+		# get all doc-libs
+		$libs = Get-PnPList -Includes BaseTemplate, Hidden | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }
 
-	# Connect to the target site
-	Connect-PnPOnline -Url $SiteToScan -UseWebLogin
 
-	# Filter for document libraries only (BaseTemplate=101)
-	$lists = Get-PnPList | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }
-
-	foreach ($list in $lists) {
-		$items = Get-PnPListItem -List $list -PageSize 1000
-		foreach ($item in $items) {
-			# Compare file size in bytes to threshold in bytes
-			if ($item.FieldValues.File_x0020_Size -gt ($SizeThresholdMB * 1MB)) {
-				[PSCustomObject]@{
-					Site   = $SiteToScan
-					File   = $item.FieldValues.FileLeafRef
-					SizeMB = [math]::Round($item.FieldValues.File_x0020_Size / 1MB, 2)
-					Url    = $item.FieldValues.FileRef
-				}
+		foreach ($lib in $libs) {
+			# fetch items + only keep the large ones
+			Get-PnPListItem -List $lib -PageSize 1000 -Fields File_x0020_Size, FileLeafRef, FileRef |
+			Where-Object { $_.FieldValues.File_x0020_Size -gt $thresholdBytes } |
+			Select-Object @{
+				Name = 'Site'; Expression = { $url }
+			}, @{
+				Name = 'File'; Expression = { $_.FieldValues.FileLeafRef }
+			}, @{
+				Name = 'SizeMB'; Expression = { [math]::Round($_.FieldValues.File_x0020_Size / 1MB, 2) }
+			}, @{
+				Name = 'Url'; Expression = { $_.FieldValues.FileRef }
 			}
 		}
 	}

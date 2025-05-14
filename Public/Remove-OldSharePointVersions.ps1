@@ -1,3 +1,5 @@
+#Requires -Version 7.0
+
 <#
 .SYNOPSIS
     Removes document versions older than a specified age from all document libraries in a site.
@@ -47,8 +49,9 @@ function Remove-OldSharePointVersions {
 		[switch]$LaunchStorageExplorer = $false
 	)
 
+
 	Write-Host "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
-	Connect-SPOService -Url $SiteUrl
+	Connect-PnPOnline -Url $SiteUrl
 
 	$cutoffDate = (Get-Date).AddDays(-$DaysToKeep)
 	Write-Host "🗓️  Removing versions older than $DaysToKeep days (before $($cutoffDate.ToShortDateString()))" -ForegroundColor Yellow
