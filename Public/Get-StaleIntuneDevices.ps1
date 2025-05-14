@@ -9,13 +9,13 @@
     Number of days since last check-in (default: 90)
 
 .EXAMPLE
-    Find-StaleIntuneDevices -DaysInactive 120
+    Get-StaleIntuneDevices -DaysInactive 120
 
 .NOTES
     Author: Ryan Blackman
     Created: 2025-03-19
 #>
-function Find-StaleIntuneDevices {
+function Get-StaleIntuneDevices {
 	[CmdletBinding()]
 	param (
 		[int]$DaysInactive = 90

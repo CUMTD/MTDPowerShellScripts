@@ -19,16 +19,16 @@
     File size threshold in megabytes (default: 500 MB).
 
 .EXAMPLE
-    Find-LargeSharePointFiles -SiteUrl "https://<your-tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
+    Get-LargeSharePointFiles -SiteUrl "https://<your-tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
 
 .EXAMPLE
-	Find-LargeSharePointFiles -SiteUrl "https://<your-tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
+	Get-LargeSharePointFiles -SiteUrl "https://<your-tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
 
 .NOTES
     Author: Ryan Blackman
     Created: 2025-03-19
 #>
-function Find-LargeSharePointFiles {
+function Get-LargeSharePointFiles {
 	[CmdletBinding()]
 	param (
 		[Parameter(Mandatory = $false)]

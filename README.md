@@ -13,40 +13,7 @@
 
 ## 📂 Included Cmdlets
 
-### `Find-LargeSharePointFiles`
-
-#### Parameters
-
-| Name                 | Type   | Required | Description                                                                                                         |
-| -------------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| `SharePointAdminUrl` | string | Yes      | The URL of the SharePoint Admin Center (e.g., `https://<tenant>-admin.sharepoint.com`). Required to scan all sites. |
-| `SiteUrl`            | string | No       | The URL of a specific site to scan (e.g., `https://<tenant>.sharepoint.com/sites/YOURSITE`).                        |
-| `SizeThresholdMB`    | int    | No       | File size threshold in megabytes (default: 500).                                                                    |
-
-#### Example
-
-```powershell
-Import-Module MTD-AdminTools
-Find-LargeSharePointFiles -SiteUrl "https://<tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
-Find-LargeSharePointFiles -SiteUrl "https://<tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
-```
-
-### `Find-StaleIntuneDevices`
-
-#### Parameters
-
-| Name           | Type | Required | Description                                       |
-| -------------- | ---- | -------- | ------------------------------------------------- |
-| `DaysInactive` | int  | No       | Number of days since last check-in (default: 90). |
-
-#### Example
-
-```powershell
-Import-Module MTD-AdminTools
-Find-StaleIntuneDevices -DaysInactive 120
-```
-
-### `Offboard-User`
+### `Disable-MtdUser`
 
 #### Parameters
 
@@ -63,8 +30,41 @@ Find-StaleIntuneDevices -DaysInactive 120
 
 ```powershell
 Import-Module MTD-AdminTools
-Offboard-User -RunAsUser me@mtd.org -UserPrincipalName departed@mtd.org -ManagerEmail manager@mtd.org -HybridUser -WhatIf
-Offboard-User -RunAsUser me@mtd.org -UserPrincipalName departed@mtd.org -ManagerEmail manager@mtd.org -DeleteAccount -WhatIf
+Disable-MtdUser -RunAsUser me@mtd.org -UserPrincipalName departed@mtd.org -ManagerEmail manager@mtd.org -HybridUser -WhatIf
+Disable-MtdUser -RunAsUser me@mtd.org -UserPrincipalName departed@mtd.org -ManagerEmail manager@mtd.org -DeleteAccount -WhatIf
+```
+
+### `Get-LargeSharePointFiles`
+
+#### Parameters
+
+| Name                 | Type   | Required | Description                                                                                                         |
+| -------------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `SharePointAdminUrl` | string | Yes      | The URL of the SharePoint Admin Center (e.g., `https://<tenant>-admin.sharepoint.com`). Required to scan all sites. |
+| `SiteUrl`            | string | No       | The URL of a specific site to scan (e.g., `https://<tenant>.sharepoint.com/sites/YOURSITE`).                        |
+| `SizeThresholdMB`    | int    | No       | File size threshold in megabytes (default: 500).                                                                    |
+
+#### Example
+
+```powershell
+Import-Module MTD-AdminTools
+Get-LargeSharePointFiles -SiteUrl "https://<tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
+Get-LargeSharePointFiles -SiteUrl "https://<tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
+```
+
+### `Get-StaleIntuneDevices`
+
+#### Parameters
+
+| Name           | Type | Required | Description                                       |
+| -------------- | ---- | -------- | ------------------------------------------------- |
+| `DaysInactive` | int  | No       | Number of days since last check-in (default: 90). |
+
+#### Example
+
+```powershell
+Import-Module MTD-AdminTools
+Get-StaleIntuneDevices -DaysInactive 120
 ```
 
 ### `Remove-OldSharePointVersions`
@@ -91,7 +91,7 @@ Remove-OldSharePointVersions -SiteUrl "https://<tenant>.sharepoint.com/sites/YOU
 
 ```powershell
 Import-Module MTD-AdminTools
-Find-StaleIntuneDevices -DaysInactive 120 | Remove-StaleIntuneDevices
+Get-StaleIntuneDevices -DaysInactive 120 | Remove-StaleIntuneDevices
 ```
 
 ### `Set-SharePointRetention`
@@ -181,7 +181,7 @@ You should see commands like:
 ```
 CommandType     Name                          ModuleName
 -----------     ----                          ----------
-Function        Find-LargeSharePointFiles     MTD-AdminTools
+Function        Get-LargeSharePointFiles     MTD-AdminTools
 Function        Set-SharePointRetention       MTD-AdminTools
 ```
 

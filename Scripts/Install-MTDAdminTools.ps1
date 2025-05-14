@@ -51,6 +51,10 @@ foreach ($item in $itemsToCopy) {
 	}
 }
 
+#  ─── UNBLOCK DOWNLOADED SCRIPTS ───────────────────────────────────────────────
+Write-Host "🔓 Unblocking all downloaded module files…" -ForegroundColor Cyan
+Get-ChildItem -Path $TargetPath -Recurse -File | Unblock-File
+
 Write-Host ""
 Write-Host "✅ MTD-AdminTools module installed to: $TargetPath" -ForegroundColor Green
 Write-Host "ℹ️  You can now load the module with:" -ForegroundColor Yellow

@@ -82,9 +82,9 @@
 
 	# Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 	FunctionsToExport = @(
-		'Find-LargeSharePointFiles',
-		'Find-StaleIntuneDevices',
-		'Offboard-User',
+		'Disable-MtdUser',
+		'Get-LargeSharePointFiles',
+		'Get-StaleIntuneDevices',
 		'Remove-OldSharePointVersions',
 		'Remove-StaleIntueDevices',
 		'Set-SharePointRetention'

@@ -113,10 +113,10 @@ If specified, the user account is deleted from Entra ID (and from AD if hybrid).
 If specified, treats the user as an on-prem synced (hybrid) user and attempts to disable or remove the AD account as well.
 
 .EXAMPLE
-Offboard-User -RunAsUser admin@mtd.org -UserPrincipalName jdoe@mtd.org -ManagerEmail supervisor@mtd.org -HybridUser
+Disable-MtdUser -RunAsUser admin@mtd.org -UserPrincipalName jdoe@mtd.org -ManagerEmail supervisor@mtd.org -HybridUser
 
 .EXAMPLE
-Offboard-User -RunAsUser admin@mtd.org -UserPrincipalName jdoe@mtd.org -ManagerEmail supervisor@mtd.org -DeleteAccount
+Disable-MtdUser -RunAsUser admin@mtd.org -UserPrincipalName jdoe@mtd.org -ManagerEmail supervisor@mtd.org -DeleteAccount
 
 .NOTES
 Requires the following modules:
@@ -133,7 +133,7 @@ Auto-replies will be set as follows:
 Author: Ryan Blackman
 Created: 2025-05-14
 #>
-function Offboard-User {
+function Disable-MtdUser {
 	[CmdletBinding(SupportsShouldProcess = $true)]
 	param (
 		[Parameter(Mandatory)]

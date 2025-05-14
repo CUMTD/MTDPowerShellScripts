@@ -3,17 +3,17 @@
     Removes stale Intune devices from Microsoft Endpoint Manager (Intune).
 
 .DESCRIPTION
-    The Remove-StaleIntuneDevices function takes pipeline input (e.g., from Find-StaleIntuneDevices)
+    The Remove-StaleIntuneDevices function takes pipeline input (e.g., from Get-StaleIntuneDevices)
     and removes each specified device from Intune. It leverages the Microsoft Graph SDK and
     supports native -WhatIf / -Confirm for confirmation prompts.
 
 .EXAMPLE
-    PS C:\> Find-StaleIntuneDevices -DaysInactive 120 | Remove-StaleIntuneDevices -Confirm
+    PS C:\> Get-StaleIntuneDevices -DaysInactive 120 | Remove-StaleIntuneDevices -Confirm
 
     Prompt for each device removal.
 
 .EXAMPLE
-    PS C:\> Find-StaleIntuneDevices -DaysInactive 120 | Remove-StaleIntuneDevices -WhatIf
+    PS C:\> Get-StaleIntuneDevices -DaysInactive 120 | Remove-StaleIntuneDevices -WhatIf
 
     Preview which devices would be removed without actually removing them.
 
