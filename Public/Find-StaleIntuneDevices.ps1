@@ -8,9 +8,6 @@
 .PARAMETER DaysInactive
     Number of days since last check-in (default: 90)
 
-.PARAMETER Remove
-    If specified, stale devices will be removed from Intune.
-
 .EXAMPLE
     Find-StaleIntuneDevices -DaysInactive 120
 
