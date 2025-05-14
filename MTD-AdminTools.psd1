@@ -11,10 +11,7 @@
 	# Script module or binary module file associated with this manifest.
 	RootModule           = 'MTD-AdminTools.psm1'
 
-	# Version number of this module.
-	ModuleVersion        = '1.1.0'
-
-	# Supported PSEditions
+	# Version number of this module.orted PSEditions
 	# CompatiblePSEditions = @()
 
 	# ID used to uniquely identify this module
@@ -105,6 +102,9 @@
 			LicenseUri   = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts/blob/main/LICENSE'
 			ProjectUri   = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts'
 			ReleaseNotes = 'Initial release. Includes Cleanup-OldSharePointVersions.'
+		}
+	}
+}
 		}
 	}
 }
