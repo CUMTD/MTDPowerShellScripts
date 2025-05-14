@@ -48,7 +48,7 @@ function Remove-OldSharePointVersions {
 	)
 
 	Write-Host "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
-	Connect-PnPOnline -Url $SiteUrl -UseWebLogin
+	Connect-SPOService -Url $SiteUrl
 
 	$cutoffDate = (Get-Date).AddDays(-$DaysToKeep)
 	Write-Host "🗓️  Removing versions older than $DaysToKeep days (before $($cutoffDate.ToShortDateString()))" -ForegroundColor Yellow
