@@ -1,14 +1,15 @@
 #Requires -Version 7.0
 #Requires -Modules PnP.PowerShell
 
-Import-Module PnP.PowerShell
-
 <#
 .SYNOPSIS
     Configure document-library version retention via PnP.
 
 .PARAMETER SharePointAdminUrl
     SPO Admin center URL (e.g. https://contoso-admin.sharepoint.com). Required.
+
+.PARAMETER ApplicationId
+    Entra app registration (application) ID used for PnP interactive authentication.
 
 .PARAMETER EnableAutoExpirationVersionTrim
     (Auto mode) Turn on Microsoft's automatic trimming of old versions.
@@ -35,6 +36,7 @@ Import-Module PnP.PowerShell
     # Auto-trim on all sites, including new libs
     Set-SharePointRetention `
       -SharePointAdminUrl https://contoso-admin.sharepoint.com `
+      -ApplicationId 00000000-0000-0000-0000-000000000000 `
       -EnableAutoExpirationVersionTrim `
       -ApplyToNewDocumentLibraries
 
@@ -42,22 +44,22 @@ Import-Module PnP.PowerShell
     # Custom: keep 100 majors & expire after 180 days on one site
     Set-SharePointRetention `
       -SharePointAdminUrl https://contoso-admin.sharepoint.com `
+      -ApplicationId 00000000-0000-0000-0000-000000000000 `
       -SiteUrl https://contoso.sharepoint.com/sites/Team `
       -MajorVersions 100 `
       -ExpireVersionsAfterDays 180 `
       -ApplyToExistingDocumentLibraries
 #>
-#Requires -Version 7.0
-#Requires -Modules PnP.PowerShell
-
-Import-Module PnP.PowerShell
-
 function Set-SharePointRetention {
     [CmdletBinding(DefaultParameterSetName = 'Auto', SupportsShouldProcess = $true)]
     param (
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$SharePointAdminUrl,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ApplicationId,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'Auto')]
         [switch]$EnableAutoExpirationVersionTrim,
@@ -81,7 +83,7 @@ function Set-SharePointRetention {
     )
 
     Write-Output "🔗 Connecting to admin: $SharePointAdminUrl" -ForegroundColor Cyan
-    Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
+    Connect-PnPOnline -Url $SharePointAdminUrl -Interactive -ApplicationId $ApplicationId
 
     # Build site list
     $siteUrls = if ($SiteUrl) { @($SiteUrl) }
@@ -93,7 +95,7 @@ function Set-SharePointRetention {
         }
 
         Write-Output "⚙️  Applying retention on $url" -ForegroundColor Yellow
-        Connect-PnPOnline -Url $url -UseWebLogin
+        Connect-PnPOnline -Url $url -Interactive -ApplicationId $ApplicationId
 
         # Always include the three version params in Custom mode (they have defaults)
         $splat = @{

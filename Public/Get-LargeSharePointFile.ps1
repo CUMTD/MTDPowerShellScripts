@@ -1,4 +1,5 @@
 #Requires -Version 7.0
+#Requires -Modules PnP.PowerShell
 
 <#
 .SYNOPSIS
@@ -13,8 +14,8 @@
   The full URL to the SharePoint site to scan (e.g. https://<your-tenant>-admin.sharepoint.com).
   Required if scanning all sites.
 
-.PARAMETER ClientId
-  The Entra app registration (Client) ID to use when connecting with PnP.PowerShell.
+.PARAMETER ApplicationId
+  The Entra app registration (Application) ID to use when connecting with PnP.PowerShell.
 
 .PARAMETER SiteUrl
   The full URL to a specific SharePoint site to scan (e.g. https://<your-tenant>.sharepoint.com/sites/YOURSITE).
@@ -24,10 +25,10 @@
     File size threshold in megabytes (default: 500 MB).
 
 .EXAMPLE
-	Get-LargeSharePointFile -SiteUrl "https://<your-tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
+        Get-LargeSharePointFile -SiteUrl "https://<your-tenant>-admin.sharepoint.com" -ApplicationId 00000000-0000-0000-0000-000000000000 -SizeThresholdMB 1024
 
 .EXAMPLE
-	Get-LargeSharePointFile -SiteUrl "https://<your-tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
+        Get-LargeSharePointFile -SiteUrl "https://<your-tenant>.sharepoint.com/sites/YOURSITE" -ApplicationId 00000000-0000-0000-0000-000000000000 -SizeThresholdMB 1024
 
 .NOTES
     Author: Ryan Blackman
@@ -47,7 +48,7 @@ function Get-LargeSharePointFile {
 
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
-        [string]$ClientId,
+        [string]$ApplicationId,
 
         [Parameter()]
         [ValidateRange(1, [int]::MaxValue)]
@@ -57,7 +58,7 @@ function Get-LargeSharePointFile {
     # figure out which set of sites to scan
     if ($PSCmdlet.ParameterSetName -eq 'Admin') {
         Write-Verbose "Connecting to tenant admin: $SharePointAdminUrl"
-        Connect-PnPOnline -Url $SharePointAdminUrl -Interactive -ClientId $ClientId
+        Connect-PnPOnline -Url $SharePointAdminUrl -Interactive -ApplicationId $ApplicationId
         $targetSites = (Get-PnPTenantSite).Url
     }
     else {
@@ -69,7 +70,7 @@ function Get-LargeSharePointFile {
 
     foreach ($url in $targetSites) {
         Write-Information "🔍 Scanning $url" -InformationAction Continue
-        Connect-PnPOnline -Url $url -Interactive -ClientId $ClientId
+        Connect-PnPOnline -Url $url -Interactive -ApplicationId $ApplicationId
 
         # get all doc-libs
         $libs = Get-PnPList -Includes BaseTemplate, Hidden | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }

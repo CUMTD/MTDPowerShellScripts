@@ -1,4 +1,5 @@
 #Requires -Version 7.0
+#Requires -Modules PnP.PowerShell
 
 <#
 .SYNOPSIS
@@ -11,6 +12,9 @@
 .PARAMETER SiteUrl
     The full URL to the SharePoint site to scan (e.g., https://tenant.sharepoint.com/sites/MySite).
 
+.PARAMETER ApplicationId
+    Entra app registration (application) ID used for PnP interactive authentication.
+
 .PARAMETER DaysToKeep
     Number of days to keep. Older versions will be deleted. Default is 365.
 
@@ -18,17 +22,17 @@
 	Launches the SharePoint Storage Explorer after the script completes. Default is false.
 
 .EXAMPLE
-    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -DaysToKeep 180 -WhatIf
+    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -ApplicationId 00000000-0000-0000-0000-000000000000 -DaysToKeep 180 -WhatIf
 
     Shows which file versions would be removed but doesn't actually remove them.
 
 .EXAMPLE
-    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -Confirm
+    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -ApplicationId 00000000-0000-0000-0000-000000000000 -Confirm
 
     Prompts for confirmation before removing each old version.
 
 .EXAMPLE
-    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -LaunchStorageExplorer
+    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -ApplicationId 00000000-0000-0000-0000-000000000000 -LaunchStorageExplorer
 
     Launch the SharePoint Storage Explorer after the script completes.
 
@@ -42,6 +46,10 @@ function Remove-OldSharePointVersion {
         [Parameter(Mandatory = $true)]
         [string]$SiteUrl,
 
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ApplicationId,
+
         [Parameter(Mandatory = $false)]
         [int]$DaysToKeep = 365,
 
@@ -51,7 +59,7 @@ function Remove-OldSharePointVersion {
 
 
     Write-Output "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
-    Connect-PnPOnline -Url $SiteUrl
+    Connect-PnPOnline -Url $SiteUrl -Interactive -ApplicationId $ApplicationId
 
     $cutoffDate = (Get-Date).AddDays(-$DaysToKeep)
     Write-Output "🗓️  Removing versions older than $DaysToKeep days (before $($cutoffDate.ToShortDateString()))" -ForegroundColor Yellow
