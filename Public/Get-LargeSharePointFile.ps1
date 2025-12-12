@@ -32,54 +32,56 @@
 	Updated: 2025-05-14
 #>
 function Get-LargeSharePointFile {
-	[CmdletBinding(DefaultParameterSetName = 'Single')]
-	param (
-		[Parameter(ParameterSetName = 'Single', Mandatory = $true)]
-		[ValidateNotNullOrEmpty()]
-		[string]$SiteUrl,
+    [CmdletBinding(DefaultParameterSetName = 'Single')]
+    param (
+        [Parameter(ParameterSetName = 'Single', Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SiteUrl,
 
-		[Parameter(ParameterSetName = 'Admin', Mandatory = $true)]
-		[ValidateNotNullOrEmpty()]
-		[string]$SharePointAdminUrl,
+        [Parameter(ParameterSetName = 'Admin', Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SharePointAdminUrl,
 
-		[Parameter()]
-		[ValidateRange(1, [int]::MaxValue)]
-		[int]$SizeThresholdMB = 500
-	)
+        [Parameter()]
+        [ValidateRange(1, [int]::MaxValue)]
+        [int]$SizeThresholdMB = 500
+    )
 
-	# figure out which set of sites to scan
-	if ($PSCmdlet.ParameterSetName -eq 'Admin') {
-		Write-Verbose "Connecting to tenant admin: $SharePointAdminUrl"
-		Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
-		$targetSites = (Get-PnPTenantSite).Url
-	} else {
-		$targetSites = , $SiteUrl
-	}
+    # figure out which set of sites to scan
+    if ($PSCmdlet.ParameterSetName -eq 'Admin') {
+        Write-Verbose "Connecting to tenant admin: $SharePointAdminUrl"
+        Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
+        $targetSites = (Get-PnPTenantSite).Url
+    }
+    else {
+        $targetSites = , $SiteUrl
+    }
 
-	$thresholdBytes = $SizeThresholdMB * 1MB
-	Write-Verbose "Filtering for files > $SizeThresholdMB MB ($thresholdBytes bytes)"
+    $thresholdBytes = $SizeThresholdMB * 1MB
+    Write-Verbose "Filtering for files > $SizeThresholdMB MB ($thresholdBytes bytes)"
 
-	foreach ($url in $targetSites) {
-		Write-Output "🔍 Scanning $url" -ForegroundColor Cyan
-		Connect-PnPOnline -Url $url -UseWebLogin
+    foreach ($url in $targetSites) {
+        Write-Output "🔍 Scanning $url" -ForegroundColor Cyan
+        Connect-PnPOnline -Url $url -UseWebLogin
 
-		# get all doc-libs
-		$libs = Get-PnPList -Includes BaseTemplate, Hidden | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }
+        # get all doc-libs
+        $libs = Get-PnPList -Includes BaseTemplate, Hidden | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }
 
 
-		foreach ($lib in $libs) {
-			# fetch items + only keep the large ones
-			Get-PnPListItem -List $lib -PageSize 1000 -Fields File_x0020_Size, FileLeafRef, FileRef |
-			Where-Object { $_.FieldValues.File_x0020_Size -gt $thresholdBytes } |
-			Select-Object @{
-				Name = 'Site'; Expression = { $url }
-			}, @{
-				Name = 'File'; Expression = { $_.FieldValues.FileLeafRef }
-			}, @{
-				Name = 'SizeMB'; Expression = { [math]::Round($_.FieldValues.File_x0020_Size / 1MB, 2) }
-			}, @{
-				Name = 'Url'; Expression = { $_.FieldValues.FileRef }
-			}
-		}
-	}
+        foreach ($lib in $libs) {
+            # fetch items + only keep the large ones
+            Get-PnPListItem -List $lib -PageSize 1000 -Fields File_x0020_Size, FileLeafRef, FileRef |
+                Where-Object { $_.FieldValues.File_x0020_Size -gt $thresholdBytes } |
+                Select-Object @{
+                    Name = 'Site'; Expression = { $url }
+                }, @{
+                    Name = 'File'; Expression = { $_.FieldValues.FileLeafRef }
+                }, @{
+                    Name = 'SizeMB'; Expression = { [math]::Round($_.FieldValues.File_x0020_Size / 1MB, 2) }
+                }, @{
+                    Name = 'Url'; Expression = { $_.FieldValues.FileRef }
+                }
+        }
+    }
 }
+

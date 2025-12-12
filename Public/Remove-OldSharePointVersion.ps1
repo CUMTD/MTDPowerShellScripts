@@ -37,72 +37,74 @@
     Created: 2025-03-19
 #>
 function Remove-OldSharePointVersion {
-	[CmdletBinding(SupportsShouldProcess = $true)]
-	param (
-		[Parameter(Mandatory = $true)]
-		[string]$SiteUrl,
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$SiteUrl,
 
-		[Parameter(Mandatory = $false)]
-		[int]$DaysToKeep = 365,
+        [Parameter(Mandatory = $false)]
+        [int]$DaysToKeep = 365,
 
-		[Parameter(Mandatory = $false)]
-		[switch]$LaunchStorageExplorer = $false
-	)
+        [Parameter(Mandatory = $false)]
+        [switch]$LaunchStorageExplorer = $false
+    )
 
 
-	Write-Output "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
-	Connect-PnPOnline -Url $SiteUrl
+    Write-Output "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
+    Connect-PnPOnline -Url $SiteUrl
 
-	$cutoffDate = (Get-Date).AddDays(-$DaysToKeep)
-	Write-Output "🗓️  Removing versions older than $DaysToKeep days (before $($cutoffDate.ToShortDateString()))" -ForegroundColor Yellow
+    $cutoffDate = (Get-Date).AddDays(-$DaysToKeep)
+    Write-Output "🗓️  Removing versions older than $DaysToKeep days (before $($cutoffDate.ToShortDateString()))" -ForegroundColor Yellow
 
-	$lists = Get-PnPList | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }
+    $lists = Get-PnPList | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }
 
-	foreach ($list in $lists) {
-		Write-Output "`n📁 Processing library: $($list.Title)" -ForegroundColor Cyan
-		$items = Get-PnPListItem -List $list -PageSize 1000
+    foreach ($list in $lists) {
+        Write-Output "`n📁 Processing library: $($list.Title)" -ForegroundColor Cyan
+        $items = Get-PnPListItem -List $list -PageSize 1000
 
-		foreach ($item in $items) {
-			# Retrieve the Versions collection from the item
-			$versions = Get-PnPProperty -ClientObject $item -Property Versions
+        foreach ($item in $items) {
+            # Retrieve the Versions collection from the item
+            $versions = Get-PnPProperty -ClientObject $item -Property Versions
 
-			# Identify old, non-current versions
-			$oldVersions = $versions | Where-Object {
-				$_.Created -lt $cutoffDate -and $_.IsCurrentVersion -eq $false
-			}
+            # Identify old, non-current versions
+            $oldVersions = $versions | Where-Object {
+                $_.Created -lt $cutoffDate -and $_.IsCurrentVersion -eq $false
+            }
 
-			foreach ($version in $oldVersions) {
-				# Use ShouldProcess for -WhatIf / -Confirm
-				$versionDate = $version.Created
-				$fileName = $item.FieldValues.FileLeafRef
+            foreach ($version in $oldVersions) {
+                # Use ShouldProcess for -WhatIf / -Confirm
+                $versionDate = $version.Created
+                $fileName = $item.FieldValues.FileLeafRef
 
-				if ($PSCmdlet.ShouldProcess(
-						"$versionDate - File: $fileName",
-						"Delete old version (created before $($cutoffDate.ToShortDateString()))"
-					)) {
-					try {
-						Write-Output "🧹 Deleting version from $versionDate for $fileName" -ForegroundColor Gray
-						$version.DeleteObject()
-					} catch {
-						Write-Warning "❌ Failed to delete version: $($_.Exception.Message)"
-					}
-				}
-			}
+                if ($PSCmdlet.ShouldProcess(
+                        "$versionDate - File: $fileName",
+                        "Delete old version (created before $($cutoffDate.ToShortDateString()))"
+                    )) {
+                    try {
+                        Write-Output "🧹 Deleting version from $versionDate for $fileName" -ForegroundColor Gray
+                        $version.DeleteObject()
+                    }
+                    catch {
+                        Write-Warning "❌ Failed to delete version: $($_.Exception.Message)"
+                    }
+                }
+            }
 
-			# If we queued deletions, commit them now
-			if ($oldVersions.Count -gt 0) {
-				Invoke-PnPQuery
-			}
-		}
+            # If we queued deletions, commit them now
+            if ($oldVersions.Count -gt 0) {
+                Invoke-PnPQuery
+            }
+        }
 
-		Write-Output "✅ Finished cleaning: $($list.Title)"
-	}
+        Write-Output "✅ Finished cleaning: $($list.Title)"
+    }
 
-	if ($LaunchStorageExplorer) {
-		Write-Output "🚀 Launching SharePoint Storage Explorer..." -ForegroundColor Cyan
-		$launchPath = "$($SiteUrl.TrimEnd('/'))/_layouts/15/storman.aspx"
-		Start-Process $launchPath
-	}
+    if ($LaunchStorageExplorer) {
+        Write-Output "🚀 Launching SharePoint Storage Explorer..." -ForegroundColor Cyan
+        $launchPath = "$($SiteUrl.TrimEnd('/'))/_layouts/15/storman.aspx"
+        Start-Process $launchPath
+    }
 
-	Write-Output "`n🎉 Cleanup complete for $SiteUrl" -ForegroundColor Green
+    Write-Output "`n🎉 Cleanup complete for $SiteUrl" -ForegroundColor Green
 }
+

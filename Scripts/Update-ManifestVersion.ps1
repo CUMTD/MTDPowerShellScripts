@@ -1,5 +1,5 @@
 param (
-	[string]$NewVersion
+    [string]$NewVersion
 )
 
 $manifestPath = "MTD-AdminTools.psd1"
@@ -14,3 +14,4 @@ $contents = $contents -replace "ModuleVersion\s*=\s*'[^']*'", "ModuleVersion = '
 Set-Content -Path $manifestPath -Value $contents
 
 Write-Output "✅ Updated ModuleVersion in .psd1 to $NewVersion"
+

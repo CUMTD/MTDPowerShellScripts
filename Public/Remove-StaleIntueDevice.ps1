@@ -24,44 +24,46 @@
     Created: 2025-03-19
 #>
 function Remove-StaleIntuneDevice {
-	[CmdletBinding(SupportsShouldProcess = $true)]
-	param (
-		[Parameter(
-			ValueFromPipeline = $true,
-			Mandatory = $true
-		)]
-		[PSObject[]]$InputObject
-	)
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [Parameter(
+            ValueFromPipeline = $true,
+            Mandatory = $true
+        )]
+        [PSObject[]]$InputObject
+    )
 
-	begin {
-		# Connect with the correct scope for removing devices
-		Connect-MgGraph -Scopes "DeviceManagementManagedDevices.ReadWrite.All" -NoWelcome
-	}
+    begin {
+        # Connect with the correct scope for removing devices
+        Connect-MgGraph -Scopes "DeviceManagementManagedDevices.ReadWrite.All" -NoWelcome
+    }
 
-	process {
-		foreach ($device in $InputObject) {
-			$deviceId = $device.Id
-			$deviceName = $device.DeviceName
+    process {
+        foreach ($device in $InputObject) {
+            $deviceId = $device.Id
+            $deviceName = $device.DeviceName
 
-			if (-not $deviceId) {
-				Write-Warning "Skipping device with missing Id. DeviceName: '$deviceName'"
-				continue
-			}
+            if (-not $deviceId) {
+                Write-Warning "Skipping device with missing Id. DeviceName: '$deviceName'"
+                continue
+            }
 
-			# The direct call to $PSCmdlet.ShouldProcess() is what PSScriptAnalyzer looks for.
-			if ($PSCmdlet.ShouldProcess($deviceName, "Remove device with Id [$deviceId]")) {
-				try {
-					Remove-MgDeviceManagementManagedDevice -ManagedDeviceId $deviceId -ErrorAction Stop
-					Write-Output "🗑️ Removed device: $deviceName (Id: $deviceId)" -ForegroundColor Red
-				} catch {
-					Write-Warning "⚠️ Failed to remove device $deviceName (Id: $deviceId). Error: $_"
-				}
-			}
-		}
-	}
+            # The direct call to $PSCmdlet.ShouldProcess() is what PSScriptAnalyzer looks for.
+            if ($PSCmdlet.ShouldProcess($deviceName, "Remove device with Id [$deviceId]")) {
+                try {
+                    Remove-MgDeviceManagementManagedDevice -ManagedDeviceId $deviceId -ErrorAction Stop
+                    Write-Output "🗑️ Removed device: $deviceName (Id: $deviceId)" -ForegroundColor Red
+                }
+                catch {
+                    Write-Warning "⚠️ Failed to remove device $deviceName (Id: $deviceId). Error: $_"
+                }
+            }
+        }
+    }
 
-	end {
-		# Disconnect from the Microsoft Graph
-		Disconnect-MgGraph
-	}
+    end {
+        # Disconnect from the Microsoft Graph
+        Disconnect-MgGraph
+    }
 }
+
