@@ -29,6 +29,8 @@
 	# Description of the functionality provided by this module
 	Description          = 'PowerShell tools for managing MTD''s tech.'
 
+	ModuleVersion        = '1.0.0'
+
 	# Minimum version of the PowerShell engine required by this module
 	PowerShellVersion    = '7.0'
 	CompatiblePSEditions = @('Core', 'Desktop')
@@ -102,9 +104,6 @@
 			LicenseUri   = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts/blob/main/LICENSE'
 			ProjectUri   = 'https://github.com/orgs/CUMTD/MTDPowerShellScripts'
 			ReleaseNotes = 'Initial release. Includes Cleanup-OldSharePointVersions.'
-		}
-	}
-}
 		}
 	}
 }
