@@ -24,6 +24,7 @@ Offboards a user by disabling or deleting the account, converting the mailbox to
 | `ManagerEmail` | Yes | Manager UPN who receives mailbox permissions and forwarding. |
 | `DeleteAccount` | No | Deletes the account instead of disabling it. |
 | `HybridUser` | No | Also handles on‑prem AD for hybrid users. |
+| `ActiveDirectoryServer` | No | Domain controller FQDN or IP to use for on-prem AD operations when `-HybridUser` is specified. |
 
 ```powershell
 Import-Module MTD-AdminTools
