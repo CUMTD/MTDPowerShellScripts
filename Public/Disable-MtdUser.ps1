@@ -1,4 +1,5 @@
 #Requires -Version 7.0
+#Requires -Modules Microsoft.Graph.Authentication, Microsoft.Graph.Identity.Governance, Microsoft.Graph.Users, ExchangeOnlineManagement, ActiveDirectory
 #
 function Write-CustomLog {
     param (

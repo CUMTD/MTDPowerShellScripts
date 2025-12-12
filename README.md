@@ -39,15 +39,15 @@ Scans one site or all tenant sites for documents larger than a threshold.
 | --- | --- | --- |
 | `SiteUrl` | Yes (single-site mode) | URL of the site to scan. |
 | `SharePointAdminUrl` | Yes (tenant mode) | Admin center URL; when provided all sites are scanned. |
-| `ClientId` | Yes | Entra app registration Client ID for PnP interactive auth. |
+| `ApplicationId` | Yes | Entra app registration Application ID for PnP interactive auth. |
 | `SizeThresholdMB` | No | Minimum size in MB to report (default: 500). |
 
 ```powershell
 # Single site
-Get-LargeSharePointFile -SiteUrl "https://tenant.sharepoint.com/sites/YOURSITE" -ClientId $AppId -SizeThresholdMB 1024
+Get-LargeSharePointFile -SiteUrl "https://tenant.sharepoint.com/sites/YOURSITE" -ApplicationId $AppId -SizeThresholdMB 1024
 
 # All sites in the tenant
-Get-LargeSharePointFile -SharePointAdminUrl "https://tenant-admin.sharepoint.com" -ClientId $AppId -SizeThresholdMB 1024
+Get-LargeSharePointFile -SharePointAdminUrl "https://tenant-admin.sharepoint.com" -ApplicationId $AppId -SizeThresholdMB 1024
 ```
 
 ### `Get-StaleIntuneDevice`
@@ -77,11 +77,12 @@ Deletes non-current file versions older than a given age across document librari
 | Parameter | Required | Description |
 | --- | --- | --- |
 | `SiteUrl` | Yes | Site to scan (e.g., `https://tenant.sharepoint.com/sites/YOURSITE`). |
+| `ApplicationId` | Yes | Entra app registration Application ID for PnP interactive auth. |
 | `DaysToKeep` | No | Delete versions older than this many days (default: 365). |
 | `LaunchStorageExplorer` | No | Launch the SharePoint Storage Explorer after cleanup. |
 
 ```powershell
-Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/YOURSITE" -DaysToKeep 180 -WhatIf
+Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/YOURSITE" -ApplicationId $AppId -DaysToKeep 180 -WhatIf
 ```
 
 ### `Set-SharePointRetention`
@@ -91,6 +92,7 @@ Configures version-history retention by enabling automatic trimming or applying 
 | Parameter | Required | Description |
 | --- | --- | --- |
 | `SharePointAdminUrl` | Yes | Admin center URL (e.g., `https://contoso-admin.sharepoint.com`). |
+| `ApplicationId` | Yes | Entra app registration Application ID for PnP interactive auth. |
 | `EnableAutoExpirationVersionTrim` | Auto mode | Turn on Microsoft automatic trimming. |
 | `ExpireVersionsAfterDays` | Custom mode | Remove versions older than this age. |
 | `MajorVersions` | Custom mode | Keep only this many major versions. |
@@ -103,12 +105,14 @@ Configures version-history retention by enabling automatic trimming or applying 
 # Automatic version trimming across all sites, including new libraries
 Set-SharePointRetention `
   -SharePointAdminUrl "https://contoso-admin.sharepoint.com" `
+  -ApplicationId $AppId `
   -EnableAutoExpirationVersionTrim `
   -ApplyToNewDocumentLibraries
 
 # Custom limits on a specific site: keep max 50 majors & delete versions older than 90 days
 Set-SharePointRetention `
   -SharePointAdminUrl "https://contoso-admin.sharepoint.com" `
+  -ApplicationId $AppId `
   -SiteUrl "https://contoso.sharepoint.com/sites/YOURSITE" `
   -MajorVersions 50 `
   -ExpireVersionsAfterDays 90 `
@@ -122,7 +126,7 @@ Enriches a Purview Disposition export with SharePoint file sizes and created yea
 | Parameter | Required | Description |
 | --- | --- | --- |
 | `DispositionCsvPath` | Yes | Path to the Purview export CSV. |
-| `PowerShellAppId` | Yes | Application ID used for PnP interactive auth. |
+| `ApplicationId` | Yes | Application ID used for PnP interactive auth. |
 | `DetailOutputCsvPath` | No | Output path for the detailed CSV (default: `./DispositionWithSizes_Detail.csv`). |
 | `SummaryOutputCsvPath` | No | Output path for the summary CSV (default: `./DispositionWithSizes_Summary.csv`). |
 | `UrlColumnName` | No | CSV column containing the item URL (default: `Location`). |
@@ -131,7 +135,7 @@ Enriches a Purview Disposition export with SharePoint file sizes and created yea
 ```powershell
 New-DispositionReport `
   -DispositionCsvPath .\PurviewDisposition.csv `
-  -PowerShellAppId $AppId `
+  -ApplicationId $AppId `
   -DetailOutputCsvPath .\DispositionWithSizes_Detail.csv `
   -SummaryOutputCsvPath .\DispositionWithSizes_Summary.csv
 ```

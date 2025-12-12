@@ -14,9 +14,9 @@ This repo is a custom PowerShell **module** for managing MTD systems and account
 ## PnP.PowerShell (SharePoint/OneDrive)
 
 - Use **PnP.PowerShell v3+** patterns and documentation.
-- Connect using an Entra App registration **Client ID** (App ID). Do **not** use `-UseWebLogin` (deprecated/removed).
+- Connect using an Entra App registration **Application ID** (App ID). Do **not** use `-UseWebLogin` (deprecated/removed).
   - Preferred interactive pattern:
-    - `Connect-PnPOnline -Url <SiteUrl> -Interactive -ClientId <AppId>`
+    - `Connect-PnPOnline -Url <SiteUrl> -Interactive -ApplicationId <AppId>`
 - When in doubt, consult the cmdlet documentation:
   - https://pnp.github.io/powershell/cmdlets/index.html
 

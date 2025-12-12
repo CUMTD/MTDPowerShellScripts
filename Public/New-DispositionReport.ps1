@@ -1,4 +1,5 @@
 #Requires -Version 7.0
+#Requires -Modules PnP.PowerShell
 
 function Get-SiteUrlFromItemUrl([string]$itemUrl) {
     $uri = [Uri]$itemUrl
@@ -26,6 +27,24 @@ function Get-ServerRelativeUrl([string]$itemUrl) {
 .REQUIREMENTS
   - Install-Module PnP.PowerShell -Scope CurrentUser
   - You must be able to read the sites / libraries where these files live.
+
+.PARAMETER DispositionCsvPath
+  Path to the Purview disposition export CSV.
+
+.PARAMETER ApplicationId
+  Entra app registration (application) ID for PnP interactive authentication.
+
+.PARAMETER DetailOutputCsvPath
+  Output path for the detailed CSV (defaults to `./DispositionWithSizes_Detail.csv`).
+
+.PARAMETER SummaryOutputCsvPath
+  Output path for the summary CSV (defaults to `./DispositionWithSizes_Summary.csv`).
+
+.PARAMETER UrlColumnName
+  Column name in the disposition export containing the item URL (defaults to `Location`).
+
+.PARAMETER LabelColumnName
+  Column name containing the retention label (defaults to `TagName`).
 #>
 
 function New-DispositionReport {
@@ -35,7 +54,7 @@ function New-DispositionReport {
         [string]$DispositionCsvPath,          # Purview export
 
         [Parameter(Mandatory = $true)]
-        [string]$PowerShellAppId,
+        [string]$ApplicationId,
 
         [string]$DetailOutputCsvPath = ".\DispositionWithSizes_Detail.csv",
         [string]$SummaryOutputCsvPath = ".\DispositionWithSizes_Summary.csv",
@@ -87,7 +106,7 @@ function New-DispositionReport {
         if (-not $siteConnections.ContainsKey($siteUrl)) {
             Write-Output "Connecting to $siteUrl..." -ForegroundColor Yellow
             try {
-                Connect-PnPOnline -Url $siteUrl -Interactive -ApplicationId $PowerShellAppId -ErrorAction Stop
+                Connect-PnPOnline -Url $siteUrl -Interactive -ApplicationId $ApplicationId -ErrorAction Stop
                 $siteConnections[$siteUrl] = $true
             }
             catch {
@@ -97,7 +116,7 @@ function New-DispositionReport {
         }
         else {
             # Reuse last connection (PnP maintains current connection)
-            Connect-PnPOnline -Url $siteUrl -ApplicationId $PowerShellAppId -ErrorAction SilentlyContinue | Out-Null
+            Connect-PnPOnline -Url $siteUrl -ApplicationId $ApplicationId -ErrorAction SilentlyContinue | Out-Null
         }
 
         # Get file as list item to read its size + created date
