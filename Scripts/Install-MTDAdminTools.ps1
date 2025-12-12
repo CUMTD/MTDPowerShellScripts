@@ -77,7 +77,22 @@ if (-not (Test-Path $TargetPath)) {
 }
 
 # Copy module files
-$sourcePath = Split-Path -Path $PSScriptRoot -Parent
+$moduleRoot = if ((Split-Path -Path $PSScriptRoot -Leaf) -eq 'Scripts') {
+    Split-Path -Path $PSScriptRoot -Parent
+} else {
+    $PSScriptRoot
+}
+
+if (-not (Test-Path -LiteralPath (Join-Path $moduleRoot 'MTD-AdminTools.psd1'))) {
+    $alternateRoot = Split-Path -Path $moduleRoot -Parent
+
+    if (Test-Path -LiteralPath (Join-Path $alternateRoot 'MTD-AdminTools.psd1')) {
+        $moduleRoot = $alternateRoot
+    } else {
+        throw "Unable to locate module files relative to '$PSScriptRoot'."
+    }
+}
+
 $itemsToCopy = @(
     "MTD-AdminTools.psd1",
     "MTD-AdminTools.psm1",
@@ -85,10 +100,10 @@ $itemsToCopy = @(
     # "Private"
 )
 
-Write-Output "Using module source at: $sourcePath"
+Write-Output "Using module source at: $moduleRoot"
 
 foreach ($item in $itemsToCopy) {
-    $src = Join-Path $sourcePath $item
+    $src = Join-Path $moduleRoot $item
     $dst = Join-Path $TargetPath $item
 
     Copy-ModuleItem -Source $src -Destination $dst
