@@ -46,5 +46,6 @@ Run Script Analyzer:
 
 Run formatter (example):
 
-1. `$formatted = Invoke-Formatter -ScriptDefinition (Get-Content <SCRIPT_PATH> -Raw)`
-2. `Set-Content -Path <SCRIPT_PATH> -Value $formatted -Encoding utf8NoBOM`
+1. `Install-Module PSScriptAnalyzer -Scope CurrentUser`
+2. `Import-Module PSScriptAnalyzer`
+3. Run `Scripts\Format-Scripts.ps1`

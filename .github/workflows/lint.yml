@@ -6,12 +6,14 @@ on:
       - "Public/**/*.ps1"
       - "Public/**/*.psm1"
       - "Public/**/*.psd1"
+      - "Scripts/Format-Scripts.ps1"
   push:
     branches: [main]
     paths:
       - "Public/**/*.ps1"
       - "Public/**/*.psm1"
       - "Public/**/*.psd1"
+      - "Scripts/Format-Scripts.ps1"
 
 jobs:
   lint:
@@ -30,36 +32,20 @@ jobs:
           Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
           Import-Module PSScriptAnalyzer -Force
 
-      - name: Format-check Public scripts (Invoke-Formatter)
+      - name: Format-check using Scripts/Format-Scripts.ps1
         shell: pwsh
         run: |
           Set-StrictMode -Version Latest
           $ErrorActionPreference = 'Stop'
 
-          $files = Get-ChildItem -Path "Public" -Recurse -File |
-            Where-Object { $_.Extension -in @('.ps1', '.psm1', '.psd1') }
+          pwsh -NoProfile -File .\Scripts\Format-Scripts.ps1
 
-          if (-not $files) {
-            Write-Host "No PowerShell files found under Public/."
-            exit 0
-          }
-
-          foreach ($f in $files) {
-            $raw = Get-Content -Path $f.FullName -Raw
-            $formatted = Invoke-Formatter -ScriptDefinition $raw
-
-            if ($formatted -ne $raw) {
-              # Apply formatting to the working tree so we can show a diff in CI
-              Set-Content -Path $f.FullName -Value $formatted -Encoding utf8NoBOM
-              Write-Host "Formatted: $($f.FullName)"
-            }
-          }
-
+          # Fail if formatter produced any changes
           $changes = git status --porcelain
           if ($changes) {
             $changes
             git --no-pager diff
-            throw "Formatting changes detected. Please run the formatter locally and commit the results."
+            throw "Formatting changes detected. Please run Scripts/Format-Scripts.ps1 locally and commit the results."
           }
 
       - name: PSScriptAnalyzer (Public scripts)
