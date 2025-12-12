@@ -8,7 +8,7 @@ This repo is a custom PowerShell **module** for managing MTD systems and account
 - Follow the formatting and style conventions in `.editorconfig`.
 - Avoid using `Write-Host` instead use `Write-Output `, `Write-Verbose`, or `Write-Information`.
 - Use approved PowerShell verbs. Follow other common PowerShell conventions.
-- Add `#Requires -Version <VERSION>` and `#Requires -Modules <MODULE>` to the beginning of script files as appropriate.
+- Add `#Requires -Version <VERSION>` and `#Requires -Modules <MODULE>` to the beginning of script files as appropriate for clarity, but pin dependency versions in `MTD-AdminTools.psd1`'s `RequiredModules` block (do not pin versions in script headers).
 - When running in a Linux container, PowerShell can be launched by running `pwsh`. To run a single command, run `pwsh -Command "<YOUR COMMAND>"`
 
 ## PnP.PowerShell (SharePoint/OneDrive)
