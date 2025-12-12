@@ -2,7 +2,52 @@ param (
     [string]$TargetPath = "$env:ProgramFiles\WindowsPowerShell\Modules\MTD-AdminTools"
 )
 
-Write-Output "🔧 Installing MTD-AdminTools module to: $TargetPath" -ForegroundColor Cyan
+Write-Output "🔧 Installing MTD-AdminTools module to: $TargetPath"
+
+function Copy-ModuleItem {
+    param (
+        [string]$Source,
+        [string]$Destination
+    )
+
+    if (Test-Path -LiteralPath $Source -PathType Container) {
+        Write-Output "Copying $Source to $Destination"
+
+        if (-not (Test-Path -LiteralPath $Destination)) {
+            New-Item -ItemType Directory -Path $Destination -Force | Out-Null
+        }
+
+        $sourceRoot = Get-Item -LiteralPath $Source
+
+        Get-ChildItem -LiteralPath $Source -Recurse -File | ForEach-Object {
+            $relativePath = $_.FullName.Substring($sourceRoot.FullName.Length).TrimStart([System.IO.Path]::DirectorySeparatorChar, [System.IO.Path]::AltDirectorySeparatorChar)
+            $targetFile = Join-Path $Destination $relativePath
+            $targetDir = Split-Path -Path $targetFile -Parent
+
+            if (-not (Test-Path -LiteralPath $targetDir)) {
+                New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+            }
+
+            [System.IO.File]::Copy($_.FullName, $targetFile, $true)
+        }
+
+        return
+    }
+
+    if (Test-Path -LiteralPath $Source -PathType Leaf) {
+        Write-Output "Copying $Source to $Destination"
+
+        $targetDir = Split-Path -Path $Destination -Parent
+        if (-not (Test-Path -LiteralPath $targetDir)) {
+            New-Item -ItemType Directory -Path $targetDir -Force | Out-Null
+        }
+
+        [System.IO.File]::Copy($Source, $Destination, $true)
+        return
+    }
+
+    Write-Warning "⚠️ Missing expected item: $Source"
+}
 
 # Warn if module is currently loaded
 $loaded = Get-Module -Name "MTD-AdminTools" -ErrorAction SilentlyContinue
@@ -14,7 +59,7 @@ if ($loaded) {
 
 # Check for existing install
 if (Test-Path $TargetPath) {
-    Write-Output "⚠️ Existing version found at $TargetPath" -ForegroundColor Yellow
+    Write-Output "⚠️ Existing version found at $TargetPath"
     $confirm = Read-Host "Do you want to overwrite the existing version? (Y/N)"
     if ($confirm -ne 'Y') {
         Write-Output "❌ Install cancelled."
@@ -27,12 +72,12 @@ if (Test-Path $TargetPath) {
 
 # Ensure target directory exists
 if (-not (Test-Path $TargetPath)) {
-    Write-Output "Creating target directory: $TargetPath" -ForegroundColor Cyan
+    Write-Output "Creating target directory: $TargetPath"
     New-Item -ItemType Directory -Path $TargetPath -Force | Out-Null
 }
 
 # Copy module files
-$sourcePath = $PSScriptRoot
+$sourcePath = Split-Path -Path $PSScriptRoot -Parent
 $itemsToCopy = @(
     "MTD-AdminTools.psd1",
     "MTD-AdminTools.psm1",
@@ -40,24 +85,23 @@ $itemsToCopy = @(
     # "Private"
 )
 
+Write-Output "Using module source at: $sourcePath"
+
 foreach ($item in $itemsToCopy) {
     $src = Join-Path $sourcePath $item
     $dst = Join-Path $TargetPath $item
 
-    if (Test-Path $src) {
-        Copy-Item -Path $src -Destination $dst -Recurse -Force
-    }
-    else {
-        Write-Warning "⚠️ Missing expected item: $item"
-    }
+    Copy-ModuleItem -Source $src -Destination $dst
 }
 
 #  ─── UNBLOCK DOWNLOADED SCRIPTS ───────────────────────────────────────────────
-Write-Output "🔓 Unblocking all downloaded module files…" -ForegroundColor Cyan
-Get-ChildItem -Path $TargetPath -Recurse -File | Unblock-File
+if ($IsWindows) {
+    Write-Output "🔓 Unblocking all downloaded module files…"
+    Get-ChildItem -Path $TargetPath -Recurse -File | Unblock-File
+}
 
 Write-Output ""
-Write-Output "✅ MTD-AdminTools module installed to: $TargetPath" -ForegroundColor Green
-Write-Output "ℹ️  You can now load the module with:" -ForegroundColor Yellow
+Write-Output "✅ MTD-AdminTools module installed to: $TargetPath"
+Write-Output "ℹ️  You can now load the module with:"
 Write-Output "    Import-Module MTD-AdminTools"
 
