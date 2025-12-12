@@ -15,18 +15,15 @@
 
 ### `Disable-MtdUser`
 
-#### Parameters
+Offboards a user by disabling or deleting the account, converting the mailbox to shared, forwarding mail to the manager, and granting the manager OneDrive access.
 
-| Name                | Type   | Required | Description                                                  |
-| ------------------- | ------ | -------- | ------------------------------------------------------------ |
-| `RunAsUser`         | string | Yes      | UPN of the admin running the script.                         |
-| `UserPrincipalName` | string | Yes      | UPN of the user being offboarded.                            |
-| `ManagerEmail`      | string | Yes      | Email address of the user's manager.                         |
-| `DeleteAccount`     | switch | No       | If set, deletes the user instead of disabling.               |
-| `HybridUser`        | switch | No       | If set, processes the user as a synced on-premises identity. |
-| `WhatIf`            | switch | No       | Performs a dry run without making changes.                   |
-
-#### Example
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `RunAsUser` | Yes | UPN of the admin running the script (used to activate PIM roles and connect to Graph/Exchange). |
+| `UserPrincipalName` | Yes | UPN of the user being offboarded. |
+| `ManagerEmail` | Yes | Manager UPN who receives mailbox permissions and forwarding. |
+| `DeleteAccount` | No | Deletes the account instead of disabling it. |
+| `HybridUser` | No | Also handles on‑prem AD for hybrid users. |
 
 ```powershell
 Import-Module MTD-AdminTools
@@ -34,90 +31,75 @@ Disable-MtdUser -RunAsUser me@mtd.org -UserPrincipalName departed@mtd.org -Manag
 Disable-MtdUser -RunAsUser me@mtd.org -UserPrincipalName departed@mtd.org -ManagerEmail manager@mtd.org -DeleteAccount -WhatIf
 ```
 
-### `Get-LargeSharePointFiles`
+### `Get-LargeSharePointFile`
 
-#### Parameters
+Scans one site or all tenant sites for documents larger than a threshold.
 
-| Name                 | Type   | Required | Description                                                                                                         |
-| -------------------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------- |
-| `SharePointAdminUrl` | string | Yes      | The URL of the SharePoint Admin Center (e.g., `https://<tenant>-admin.sharepoint.com`). Required to scan all sites. |
-| `SiteUrl`            | string | No       | The URL of a specific site to scan (e.g., `https://<tenant>.sharepoint.com/sites/YOURSITE`).                        |
-| `SizeThresholdMB`    | int    | No       | File size threshold in megabytes (default: 500).                                                                    |
-
-#### Example
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `SiteUrl` | Yes (single-site mode) | URL of the site to scan. |
+| `SharePointAdminUrl` | Yes (tenant mode) | Admin center URL; when provided all sites are scanned. |
+| `ClientId` | Yes | Entra app registration Client ID for PnP interactive auth. |
+| `SizeThresholdMB` | No | Minimum size in MB to report (default: 500). |
 
 ```powershell
-Import-Module MTD-AdminTools
-Get-LargeSharePointFiles -SiteUrl "https://<tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
-Get-LargeSharePointFiles -SiteUrl "https://<tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
+# Single site
+Get-LargeSharePointFile -SiteUrl "https://tenant.sharepoint.com/sites/YOURSITE" -ClientId $AppId -SizeThresholdMB 1024
+
+# All sites in the tenant
+Get-LargeSharePointFile -SharePointAdminUrl "https://tenant-admin.sharepoint.com" -ClientId $AppId -SizeThresholdMB 1024
 ```
 
-### `Get-StaleIntuneDevices`
+### `Get-StaleIntuneDevice`
 
-#### Parameters
+Lists managed devices that have not checked in recently.
 
-| Name           | Type | Required | Description                                       |
-| -------------- | ---- | -------- | ------------------------------------------------- |
-| `DaysInactive` | int  | No       | Number of days since last check-in (default: 90). |
-
-#### Example
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `DaysInactive` | No | Devices with last sync older than this many days are returned (default: 90). |
 
 ```powershell
-Import-Module MTD-AdminTools
-Get-StaleIntuneDevices -DaysInactive 120
+Get-StaleIntuneDevice -DaysInactive 120
 ```
 
-### `Remove-OldSharePointVersions`
+### `Remove-StaleIntuneDevice`
 
-Deletes non-current file versions older than a specified number of days from all document libraries in a SharePoint site.
-
-#### Parameters
-
-| Name         | Type   | Required | Description                                                         |
-| ------------ | ------ | -------- | ------------------------------------------------------------------- |
-| `SiteUrl`    | string | Yes      | Full URL of the site to scan.                                       |
-| `DaysToKeep` | int    | No       | Versions older than this number of days are deleted (default: 365). |
-
-#### Example
+Removes Intune devices piped from `Get-StaleIntuneDevice`; supports `-WhatIf`/`-Confirm`.
 
 ```powershell
-Import-Module MTD-AdminTools
-Remove-OldSharePointVersions -SiteUrl "https://<tenant>.sharepoint.com/sites/YOURSITE" -DaysToKeep 180
+Get-StaleIntuneDevice -DaysInactive 120 | Remove-StaleIntuneDevice -WhatIf
 ```
 
-### `Remove-StaleIntuneDevices`
+### `Remove-OldSharePointVersion`
 
-#### Example
+Deletes non-current file versions older than a given age across document libraries in a site.
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `SiteUrl` | Yes | Site to scan (e.g., `https://tenant.sharepoint.com/sites/YOURSITE`). |
+| `DaysToKeep` | No | Delete versions older than this many days (default: 365). |
+| `LaunchStorageExplorer` | No | Launch the SharePoint Storage Explorer after cleanup. |
 
 ```powershell
-Import-Module MTD-AdminTools
-Get-StaleIntuneDevices -DaysInactive 120 | Remove-StaleIntuneDevices
+Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/YOURSITE" -DaysToKeep 180 -WhatIf
 ```
 
 ### `Set-SharePointRetention`
 
-Configures version-history retention on SharePoint Online sites by enabling automatic trimming or applying custom version/age limits.
+Configures version-history retention by enabling automatic trimming or applying custom version/age limits.
 
-#### Parameters
-
-| Name                               | Type   | Required    | Description                                                                                                   |
-| ---------------------------------- | ------ | ----------- | ------------------------------------------------------------------------------------------------------------- |
-| `SharePointAdminUrl`               | string | Yes         | URL of the SharePoint Admin Center (e.g., `https://contoso-admin.sharepoint.com`).                            |
-| `SiteUrl`                          | string | No          | Site URL to target (e.g., `https://contoso.sharepoint.com/sites/YOURSITE`). Defaults to all sites if omitted. |
-| `EnableAutoExpirationVersionTrim`  | switch | Auto mode   | Enables automatic version trimming. Mutually exclusive with custom mode.                                      |
-| `ExpireVersionsAfterDays`          | int    | Custom mode | Deletes versions older than the specified number of days.                                                     |
-| `MajorVersionLimit`                | int    | Custom mode | Keeps only the specified number of major versions.                                                            |
-| `MajorWithMinorVersionsLimit`      | int    | Custom mode | Also retains minor versions for the last N major versions (in addition to `MajorVersionLimit`).               |
-| `ApplyToExistingDocumentLibraries` | switch | No          | Targets existing libraries (default if no apply flag is used).                                                |
-| `ApplyToNewDocumentLibraries`      | switch | No          | Also applies settings to libraries created after this change.                                                 |
-
-> **Note:** In Custom mode, at least one of `-ExpireVersionsAfterDays`, `-MajorVersionLimit`, or `-MajorWithMinorVersionsLimit` is required.
-
-#### Example
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `SharePointAdminUrl` | Yes | Admin center URL (e.g., `https://contoso-admin.sharepoint.com`). |
+| `EnableAutoExpirationVersionTrim` | Auto mode | Turn on Microsoft automatic trimming. |
+| `ExpireVersionsAfterDays` | Custom mode | Remove versions older than this age. |
+| `MajorVersions` | Custom mode | Keep only this many major versions. |
+| `MajorWithMinorVersions` | Custom mode | Keep minor versions for the last N majors. |
+| `ApplyToExistingDocumentLibraries` | No | Apply to current libraries. |
+| `ApplyToNewDocumentLibraries` | No | Apply to libraries created after the change. |
+| `SiteUrl` | No | Limit to a single site; omit to target all sites. |
 
 ```powershell
-Import-Module MTD-AdminTools
-
 # Automatic version trimming across all sites, including new libraries
 Set-SharePointRetention `
   -SharePointAdminUrl "https://contoso-admin.sharepoint.com" `
@@ -128,9 +110,30 @@ Set-SharePointRetention `
 Set-SharePointRetention `
   -SharePointAdminUrl "https://contoso-admin.sharepoint.com" `
   -SiteUrl "https://contoso.sharepoint.com/sites/YOURSITE" `
-  -MajorVersionLimit 50 `
+  -MajorVersions 50 `
   -ExpireVersionsAfterDays 90 `
   -ApplyToExistingDocumentLibraries
+```
+
+### `New-DispositionReport`
+
+Enriches a Purview Disposition export with SharePoint file sizes and created years, producing detailed and summary CSVs grouped by label and year.
+
+| Parameter | Required | Description |
+| --- | --- | --- |
+| `DispositionCsvPath` | Yes | Path to the Purview export CSV. |
+| `PowerShellAppId` | Yes | Application ID used for PnP interactive auth. |
+| `DetailOutputCsvPath` | No | Output path for the detailed CSV (default: `./DispositionWithSizes_Detail.csv`). |
+| `SummaryOutputCsvPath` | No | Output path for the summary CSV (default: `./DispositionWithSizes_Summary.csv`). |
+| `UrlColumnName` | No | CSV column containing the item URL (default: `Location`). |
+| `LabelColumnName` | No | CSV column containing the retention label (default: `TagName`). |
+
+```powershell
+New-DispositionReport `
+  -DispositionCsvPath .\PurviewDisposition.csv `
+  -PowerShellAppId $AppId `
+  -DetailOutputCsvPath .\DispositionWithSizes_Detail.csv `
+  -SummaryOutputCsvPath .\DispositionWithSizes_Summary.csv
 ```
 
 ## 📥 Installation
@@ -166,7 +169,7 @@ Import-Module "\$PWD/MTD-AdminTools.psd1"
 ### ⚙️ Option 3: Use the Installer Script
 
 ```powershell
-.\scripts\Install-MTDAdminTools.ps1 [-TargetPath "C:\Modules\MTD-AdminTools"]
+.\Scripts\Install-MTDAdminTools.ps1 [-TargetPath "C:\Modules\MTD-AdminTools"]
 Import-Module MTD-AdminTools
 ```
 
@@ -179,10 +182,10 @@ Get-Command -Module MTD-AdminTools
 You should see commands like:
 
 ```
-CommandType     Name                          ModuleName
------------     ----                          ----------
-Function        Get-LargeSharePointFiles     MTD-AdminTools
-Function        Set-SharePointRetention       MTD-AdminTools
+CommandType     Name                       ModuleName
+-----------     ----                       ----------
+Function        Get-LargeSharePointFile    MTD-AdminTools
+Function        Remove-OldSharePointVersion MTD-AdminTools
 ```
 
 ## 🧰 Development
