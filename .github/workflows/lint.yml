@@ -15,6 +15,7 @@ on:
       - "Public/**/*.psm1"
       - "Public/**/*.psd1"
       - "Scripts/Format-PowerShellScripts.ps1"
+      - ".github/workflows/lint.yml"
 
 jobs:
   lint:
