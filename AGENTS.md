@@ -9,6 +9,7 @@ This repo is a custom PowerShell **module** for managing MTD systems and account
 - Avoid using `Write-Host` instead use `Write-Output `, `Write-Verbose`, or `Write-Information`.
 - Use approved PowerShell verbs. Follow other common PowerShell conventions.
 - Add `#Requires -Version <VERSION>` and `#Requires -Modules <MODULE>` to the beginning of script files as appropriate.
+- When running in a Linux container, PowerShell can be launched by running `pwsh`. To run a single command, run `pwsh -Command "<YOUR COMMAND>"`
 
 ## PnP.PowerShell (SharePoint/OneDrive)
 
@@ -40,7 +41,7 @@ This repo is a custom PowerShell **module** for managing MTD systems and account
 
 Run Script Analyzer:
 
-1. `Install-Module PSScriptAnalyzer -Scope CurrentUser`
+1. `Install-Module PSScriptAnalyzer -Scope CurrentUser -AcceptLicense`
 2. `Import-Module PSScriptAnalyzer`
 3. `Invoke-ScriptAnalyzer -Path .\Public -Recurse -Settings .\PSScriptAnalyzerSettings.psd1`
 4. Do not add a BOM if the `PSUseBOMForUnicodeEncodedFile` is detected.
