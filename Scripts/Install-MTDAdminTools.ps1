@@ -79,7 +79,8 @@ if (-not (Test-Path $TargetPath)) {
 # Copy module files
 $moduleRoot = if ((Split-Path -Path $PSScriptRoot -Leaf) -eq 'Scripts') {
     Split-Path -Path $PSScriptRoot -Parent
-} else {
+}
+else {
     $PSScriptRoot
 }
 
@@ -88,7 +89,8 @@ if (-not (Test-Path -LiteralPath (Join-Path $moduleRoot 'MTD-AdminTools.psd1')))
 
     if (Test-Path -LiteralPath (Join-Path $alternateRoot 'MTD-AdminTools.psd1')) {
         $moduleRoot = $alternateRoot
-    } else {
+    }
+    else {
         throw "Unable to locate module files relative to '$PSScriptRoot'."
     }
 }
