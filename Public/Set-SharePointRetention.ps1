@@ -53,62 +53,63 @@ Import-Module PnP.PowerShell
 Import-Module PnP.PowerShell
 
 function Set-SharePointRetention {
-	[CmdletBinding(DefaultParameterSetName = 'Auto', SupportsShouldProcess = $true)]
-	param (
-		[Parameter(Mandatory = $true)]
-		[ValidateNotNullOrEmpty()]
-		[string]$SharePointAdminUrl,
+    [CmdletBinding(DefaultParameterSetName = 'Auto', SupportsShouldProcess = $true)]
+    param (
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$SharePointAdminUrl,
 
-		[Parameter(Mandatory = $true, ParameterSetName = 'Auto')]
-		[switch]$EnableAutoExpirationVersionTrim,
+        [Parameter(Mandatory = $true, ParameterSetName = 'Auto')]
+        [switch]$EnableAutoExpirationVersionTrim,
 
-		[Parameter(ParameterSetName = 'Custom')]
-		[ValidateRange(0, [int]::MaxValue)]
-		[int]$ExpireVersionsAfterDays = [int]::MaxValue,
+        [Parameter(ParameterSetName = 'Custom')]
+        [ValidateRange(0, [int]::MaxValue)]
+        [int]$ExpireVersionsAfterDays = [int]::MaxValue,
 
-		[Parameter(ParameterSetName = 'Custom')]
-		[ValidateRange(1, [int]::MaxValue)]
-		[int]$MajorVersions = [int]::MaxValue,
+        [Parameter(ParameterSetName = 'Custom')]
+        [ValidateRange(1, [int]::MaxValue)]
+        [int]$MajorVersions = [int]::MaxValue,
 
-		[Parameter(ParameterSetName = 'Custom')]
-		[ValidateRange(0, [int]::MaxValue)]
-		[int]$MajorWithMinorVersions = [int]::MaxValue,
+        [Parameter(ParameterSetName = 'Custom')]
+        [ValidateRange(0, [int]::MaxValue)]
+        [int]$MajorWithMinorVersions = [int]::MaxValue,
 
-		[switch]$ApplyToExistingDocumentLibraries,
-		[switch]$ApplyToNewDocumentLibraries,
+        [switch]$ApplyToExistingDocumentLibraries,
+        [switch]$ApplyToNewDocumentLibraries,
 
-		[string]$SiteUrl
-	)
+        [string]$SiteUrl
+    )
 
-	Write-Host "🔗 Connecting to admin: $SharePointAdminUrl" -ForegroundColor Cyan
-	Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
+    Write-Output "🔗 Connecting to admin: $SharePointAdminUrl" -ForegroundColor Cyan
+    Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
 
-	# Build site list
-	$siteUrls = if ($SiteUrl) { @($SiteUrl) }
-	else { (Get-PnPTenantSite).Url }
+    # Build site list
+    $siteUrls = if ($SiteUrl) { @($SiteUrl) }
+    else { (Get-PnPTenantSite).Url }
 
-	foreach ($url in $siteUrls) {
-		if (-not $PSCmdlet.ShouldProcess($url, 'Configure retention policy')) {
-			continue
-		}
+    foreach ($url in $siteUrls) {
+        if (-not $PSCmdlet.ShouldProcess($url, 'Configure retention policy')) {
+            continue
+        }
 
-		Write-Host "⚙️  Applying retention on $url" -ForegroundColor Yellow
-		Connect-PnPOnline -Url $url -UseWebLogin
+        Write-Output "⚙️  Applying retention on $url" -ForegroundColor Yellow
+        Connect-PnPOnline -Url $url -UseWebLogin
 
-		# Always include the three version params in Custom mode (they have defaults)
-		$splat = @{
-			EnableAutoExpirationVersionTrim = $EnableAutoExpirationVersionTrim.IsPresent
-			ExpireVersionsAfterDays         = $ExpireVersionsAfterDays
-			MajorVersions                   = $MajorVersions
-			MajorWithMinorVersions          = $MajorWithMinorVersions
-		}
+        # Always include the three version params in Custom mode (they have defaults)
+        $splat = @{
+            EnableAutoExpirationVersionTrim = $EnableAutoExpirationVersionTrim.IsPresent
+            ExpireVersionsAfterDays         = $ExpireVersionsAfterDays
+            MajorVersions                   = $MajorVersions
+            MajorWithMinorVersions          = $MajorWithMinorVersions
+        }
 
-		if ($ApplyToExistingDocumentLibraries) { $splat.ApplyToExistingDocumentLibraries = $true }
-		if ($ApplyToNewDocumentLibraries) { $splat.ApplyToNewDocumentLibraries = $true }
+        if ($ApplyToExistingDocumentLibraries) { $splat.ApplyToExistingDocumentLibraries = $true }
+        if ($ApplyToNewDocumentLibraries) { $splat.ApplyToNewDocumentLibraries = $true }
 
-		Set-PnPSiteVersionPolicy @splat
-		Write-Host "✔ Done for $url" -ForegroundColor Green
-	}
+        Set-PnPSiteVersionPolicy @splat
+        Write-Output "✔ Done for $url" -ForegroundColor Green
+    }
 
-	Write-Host "🎉 All done." -ForegroundColor Cyan
+    Write-Output "🎉 All done." -ForegroundColor Cyan
 }
+

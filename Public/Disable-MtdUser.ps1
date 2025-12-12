@@ -1,90 +1,94 @@
 #Requires -Version 7.0
 #
-function Write-Log {
-	param (
-		[Parameter(Mandatory)][string]$Message,
-		[ValidateSet("Error", "Warning", "Info", "Debug", "Verbose")]
-		[string]$Level = "Info",
-		[string]$Path = (Join-Path $env:USERPROFILE "UserOffboarding.log")
-	)
-	$ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-	$entry = "$ts [$Level] $Message"
-	Add-Content -Path $Path -Value $entry
-	switch ($Level) {
-		"Error" { $color = "Red" }; "Warning" { $color = "Yellow" }; "Info" { $color = "Cyan" }
-		"Debug" { $color = "Gray" }; "Verbose" { $color = "DarkGray" }
-	}
-	Write-Host $entry -ForegroundColor $color
+function Write-CustomLog {
+    param (
+        [Parameter(Mandatory)][string]$Message,
+        [ValidateSet("Error", "Warning", "Info", "Debug", "Verbose")]
+        [string]$Level = "Info",
+        [string]$Path = (Join-Path $env:USERPROFILE "UserOffboarding.log")
+    )
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $entry = "$ts [$Level] $Message"
+    Add-Content -Path $Path -Value $entry
+    switch ($Level) {
+        "Error" { Write-Error $entry; break }
+        "Warning" { Write-Warning $entry; break }
+        "Debug" { Write-Debug $entry; break }
+        "Verbose" { Write-Verbose $entry; break }
+        default { Write-Information $entry -InformationAction Continue }
+    }
 }
 
-function Generate-StrongPassword {
-	param (
-		[int]$Length = 30,
-		[int]$NonAlphanumericLength = 8
-	)
-	if ($NonAlphanumericLength -gt $Length) {
-		throw "Non-alphanumeric count cannot exceed total length."
-	}
-	if ($PSVersionTable.PSEdition -eq 'Desktop') {
-		Add-Type -AssemblyName System.Web
-		return [System.Web.Security.Membership]::GeneratePassword($Length, $NonAlphanumericLength)
-	}
-	$lower = 'abcdefghijklmnopqrstuvwxyz'.ToCharArray()
-	$upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.ToCharArray()
-	$digits = '0123456789'.ToCharArray()
-	$special = '!@#$%^&*()-_=+[]{}|;:,.<>?'.ToCharArray()
-	$alphanum = $lower + $upper + $digits
+function Get-StrongPassword {
+    param (
+        [int]$Length = 30,
+        [int]$NonAlphanumericLength = 8
+    )
+    if ($NonAlphanumericLength -gt $Length) {
+        throw "Non-alphanumeric count cannot exceed total length."
+    }
+    if ($PSVersionTable.PSEdition -eq 'Desktop') {
+        Add-Type -AssemblyName System.Web
+        return [System.Web.Security.Membership]::GeneratePassword($Length, $NonAlphanumericLength)
+    }
+    $lower = 'abcdefghijklmnopqrstuvwxyz'.ToCharArray()
+    $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.ToCharArray()
+    $digits = '0123456789'.ToCharArray()
+    $special = '!@#$%^&*()-_=+[]{}|;:,.<>?'.ToCharArray()
+    $alphanum = $lower + $upper + $digits
 
-	$alphaPart = -join (1..($Length - $NonAlphanumericLength) |
-		ForEach-Object { Get-Random -InputObject $alphanum })
-	$specPart = -join (1..$NonAlphanumericLength |
-		ForEach-Object { Get-Random -InputObject $special })
-	return ( -join (($alphaPart + $specPart).ToCharArray() | Sort-Object { Get-Random }))
+    $alphaPart = -join (1..($Length - $NonAlphanumericLength) |
+            ForEach-Object { Get-Random -InputObject $alphanum })
+    $specPart = -join (1..$NonAlphanumericLength |
+            ForEach-Object { Get-Random -InputObject $special })
+    return ( -join (($alphaPart + $specPart).ToCharArray() | Sort-Object { Get-Random }))
 }
 
-function Activate-PIMRole {
-	param (
-		[Parameter(Mandatory)][string]$RoleName,
-		[Parameter(Mandatory)][string]$UserObjectId
-	)
-	try {
-		Write-Log "Activating PIM role '$RoleName' for object $UserObjectId" "Verbose"
-		$assignment = Get-MgPrivilegedRoleAssignment `
-			-Filter "principalId eq '$UserObjectId' and roleDefinitionId eq '$RoleName'"
-		if ($assignment) {
-			Enable-MgPrivilegedRoleAssignment -PrivilegedRoleAssignmentId $assignment.Id
-			Write-Log "PIM role activated: $RoleName" "Info"
-		} else {
-			Write-Log "No PIM assignment found for $RoleName" "Warning"
-		}
-	} catch {
-		Write-Log "Error activating PIM: $_" "Error"
-	}
+function Enable-PIMRole {
+    param (
+        [Parameter(Mandatory)][string]$RoleName,
+        [Parameter(Mandatory)][string]$UserObjectId
+    )
+    try {
+        Write-CustomLog "Enabling PIM role '$RoleName' for object $UserObjectId" "Verbose"
+        $assignment = Get-MgPrivilegedRoleAssignment `
+            -Filter "principalId eq '$UserObjectId' and roleDefinitionId eq '$RoleName'"
+        if ($assignment) {
+            Enable-MgPrivilegedRoleAssignment -PrivilegedRoleAssignmentId $assignment.Id
+            Write-CustomLog "PIM role enabled: $RoleName" "Info"
+        }
+        else {
+            Write-CustomLog "No PIM assignment found for $RoleName" "Warning"
+        }
+    }
+    catch {
+        Write-CustomLog "Error enabling PIM: $_" "Error"
+    }
 }
 
-function Connect-MicrosoftServices {
-	param (
-		[Parameter(Mandatory)]
-		[ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
-		[string]$RunAsUser,
-		[string[]]$PIMRoles = @(
-			"License Administrator",
-			"Exchange Administrator",
-			"Helpdesk User Management"
-		)
-	)
-	# 1) Activate PIM roles
-	Connect-MgGraph -Scopes "PrivilegedAccess.ReadWrite.AzureADGroup" -UseDeviceAuthentication
-	$user = Get-MgUser -UserId $RunAsUser
-	foreach ($role in $PIMRoles) {
-		Activate-PIMRole -RoleName $role -UserObjectId $user.Id
-	}
-	# 2) Connect with full Graph scopes
-	Connect-MgGraph -Scopes `
-		"User.ReadWrite.All", "Group.ReadWrite.All", "Directory.ReadWrite.All", "Mail.ReadWrite", "Sites.ReadWrite.All" `
-		-UseDeviceAuthentication
-	# 3) Connect Exchange Online
-	Connect-ExchangeOnline -UserPrincipalName $RunAsUser
+function Connect-MicrosoftService {
+    param (
+        [Parameter(Mandatory)]
+        [ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
+        [string]$RunAsUser,
+        [string[]]$PIMRoles = @(
+            "License Administrator",
+            "Exchange Administrator",
+            "Helpdesk User Management"
+        )
+    )
+    # 1) Activate PIM roles
+    Connect-MgGraph -Scopes "PrivilegedAccess.ReadWrite.AzureADGroup" -UseDeviceAuthentication
+    $user = Get-MgUser -UserId $RunAsUser
+    foreach ($role in $PIMRoles) {
+        Enable-PIMRole -RoleName $role -UserObjectId $user.Id
+    }
+    # 2) Connect with full Graph scopes
+    Connect-MgGraph -Scopes `
+        "User.ReadWrite.All", "Group.ReadWrite.All", "Directory.ReadWrite.All", "Mail.ReadWrite", "Sites.ReadWrite.All" `
+        -UseDeviceAuthentication
+    # 3) Connect Exchange Online
+    Connect-ExchangeOnline -UserPrincipalName $RunAsUser
 }
 
 <#
@@ -132,145 +136,147 @@ Created: 2025-05-14
 #>
 function Disable-MtdUser {
 
-	[CmdletBinding(SupportsShouldProcess = $true)]
-	param (
-		[Parameter(Mandatory)]
-		[ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
-		[string]$RunAsUser,
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param (
+        [Parameter(Mandatory)]
+        [ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
+        [string]$RunAsUser,
 
-		[Parameter(Mandatory)]
-		[ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
-		[string]$UserPrincipalName,
+        [Parameter(Mandatory)]
+        [ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
+        [string]$UserPrincipalName,
 
-		[Parameter(Mandatory)]
-		[ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
-		[string]$ManagerEmail,
+        [Parameter(Mandatory)]
+        [ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
+        [string]$ManagerEmail,
 
-		[switch]$DeleteAccount,
-		[switch]$HybridUser
-	)
+        [switch]$DeleteAccount,
+        [switch]$HybridUser
+    )
 
-	Write-Log "==== Begin offboarding $UserPrincipalName ====" "Info"
+    Write-CustomLog "==== Begin offboarding $UserPrincipalName ====" "Info"
 
-	# Prompt for on-prem credentials if hybrid
-	if ($HybridUser) {
-		Write-Log "Hybrid mode: prompting for on‑prem AD admin credentials" "Info"
-		$OnPremCred = Get-Credential -Message "Enter on‑prem AD admin credentials"
-	}
+    # Prompt for on-prem credentials if hybrid
+    if ($HybridUser) {
+        Write-CustomLog "Hybrid mode: prompting for on‑prem AD admin credentials" "Info"
+        $OnPremCred = Get-Credential -Message "Enter on‑prem AD admin credentials"
+    }
 
-	Connect-MicrosoftServices -RunAsUser $RunAsUser
+    Connect-MicrosoftService -RunAsUser $RunAsUser
 
-	# Fetch target & manager objects for names
-	$target = Get-MgUser -UserId $UserPrincipalName
-	$manager = Get-MgUser -UserId $ManagerEmail
+    # Fetch target & manager objects for names
+    $target = Get-MgUser -UserId $UserPrincipalName
+    $manager = Get-MgUser -UserId $ManagerEmail
 
-	# Build auto-reply texts
-	$internalMsg = "$($target.GivenName) is no longer with MTD. Please contact $($manager.GivenName) $($manager.Surname) for assistance."
-	$externalMsg = "$($target.GivenName) is no longer with MTD."
+    # Build auto-reply texts
+    $internalMsg = "$($target.GivenName) is no longer with MTD. Please contact $($manager.GivenName) $($manager.Surname) for assistance."
+    $externalMsg = "$($target.GivenName) is no longer with MTD."
 
-	#
-	# 1) Disable or Delete accounts
-	#
-	if ($DeleteAccount) {
-		# Hybrid: delete on-prem + Entra ID
-		if ($HybridUser) {
-			if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Remove on-prem AD user")) {
-				Remove-ADUser -Identity $UserPrincipalName -Credential $OnPremCred -Confirm:$false
-				Write-Log "On-prem AD user deleted" "Info"
-			}
-		}
-		# Entra ID deletion
-		if ($PSCmdlet.ShouldProcess("Entra ID:$UserPrincipalName", "Remove Entra ID user")) {
-			Remove-MgUser -UserId $UserPrincipalName -Confirm:$false
-			Write-Log "Entra ID user deleted" "Info"
-		}
-	} else {
-		# Hybrid disable
-		if ($HybridUser) {
-			if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Disable on-prem AD user")) {
-				Disable-ADAccount -Identity $UserPrincipalName -Credential $OnPremCred
-				Set-ADUser -Identity $UserPrincipalName -Add @{msExchHideFromAddressLists = "TRUE" } -Credential $OnPremCred
-				Write-Log "On-prem AD user disabled & hidden from GAL" "Info"
-			}
-		}
-		# Entra ID disable
-		if ($PSCmdlet.ShouldProcess("Entra ID:$UserPrincipalName", "Disable Entra ID account")) {
-			Update-MgUser -UserId $UserPrincipalName -AccountEnabled:$false
-			Invoke-MgGraphRequest -Method POST `
-				-Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/revokeSignInSessions"
-			Write-Log "Entra ID account disabled & sessions revoked" "Info"
-		}
-	}
+    #
+    # 1) Disable or Delete accounts
+    #
+    if ($DeleteAccount) {
+        # Hybrid: delete on-prem + Entra ID
+        if ($HybridUser) {
+            if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Remove on-prem AD user")) {
+                Remove-ADUser -Identity $UserPrincipalName -Credential $OnPremCred -Confirm:$false
+                Write-CustomLog "On-prem AD user deleted" "Info"
+            }
+        }
+        # Entra ID deletion
+        if ($PSCmdlet.ShouldProcess("Entra ID:$UserPrincipalName", "Remove Entra ID user")) {
+            Remove-MgUser -UserId $UserPrincipalName -Confirm:$false
+            Write-CustomLog "Entra ID user deleted" "Info"
+        }
+    }
+    else {
+        # Hybrid disable
+        if ($HybridUser) {
+            if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Disable on-prem AD user")) {
+                Disable-ADAccount -Identity $UserPrincipalName -Credential $OnPremCred
+                Set-ADUser -Identity $UserPrincipalName -Add @{msExchHideFromAddressLists = "TRUE" } -Credential $OnPremCred
+                Write-CustomLog "On-prem AD user disabled & hidden from GAL" "Info"
+            }
+        }
+        # Entra ID disable
+        if ($PSCmdlet.ShouldProcess("Entra ID:$UserPrincipalName", "Disable Entra ID account")) {
+            Update-MgUser -UserId $UserPrincipalName -AccountEnabled:$false
+            Invoke-MgGraphRequest -Method POST `
+                -Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/revokeSignInSessions"
+            Write-CustomLog "Entra ID account disabled & sessions revoked" "Info"
+        }
+    }
 
-	#
-	# 2) Remove from groups
-	#
-	if ($HybridUser) {
-		$localGroups = Get-ADPrincipalGroupMembership -Identity $UserPrincipalName -Credential $OnPremCred
-		foreach ($g in $localGroups) {
-			if ($PSCmdlet.ShouldProcess("AD Group:$($g.SamAccountName)", "Remove $UserPrincipalName")) {
-				Remove-ADGroupMember -Identity $g.SamAccountName -Members $UserPrincipalName -Credential $OnPremCred -Confirm:$false
-				Write-Log "Removed from local AD group $($g.SamAccountName)" "Debug"
-			}
-		}
-	}
-	# Azure/Entra ID groups
-	$azureGroups = Get-MgUserMemberOf -UserId $UserPrincipalName -All |
-	Where-Object { $_.'@odata.type' -eq '#microsoft.graph.group' }
-	foreach ($g in $azureGroups) {
-		if ($PSCmdlet.ShouldProcess("Entra Group:$($g.DisplayName)", "Remove $UserPrincipalName")) {
-			Remove-MgGroupMember -GroupId $g.Id -MemberId $UserPrincipalName -ErrorAction SilentlyContinue
-			Write-Log "Removed from Entra group $($g.DisplayName)" "Debug"
-		}
-	}
+    #
+    # 2) Remove from groups
+    #
+    if ($HybridUser) {
+        $localGroups = Get-ADPrincipalGroupMembership -Identity $UserPrincipalName -Credential $OnPremCred
+        foreach ($g in $localGroups) {
+            if ($PSCmdlet.ShouldProcess("AD Group:$($g.SamAccountName)", "Remove $UserPrincipalName")) {
+                Remove-ADGroupMember -Identity $g.SamAccountName -Members $UserPrincipalName -Credential $OnPremCred -Confirm:$false
+                Write-CustomLog "Removed from local AD group $($g.SamAccountName)" "Debug"
+            }
+        }
+    }
+    # Azure/Entra ID groups
+    $azureGroups = Get-MgUserMemberOf -UserId $UserPrincipalName -All |
+        Where-Object { $_.'@odata.type' -eq '#microsoft.graph.group' }
+    foreach ($g in $azureGroups) {
+        if ($PSCmdlet.ShouldProcess("Entra Group:$($g.DisplayName)", "Remove $UserPrincipalName")) {
+            Remove-MgGroupMember -GroupId $g.Id -MemberId $UserPrincipalName -ErrorAction SilentlyContinue
+            Write-CustomLog "Removed from Entra group $($g.DisplayName)" "Debug"
+        }
+    }
 
-	#
-	# 3) Mailbox conversion & config (both hybrid & cloud)
-	#
-	$mb = Get-Mailbox -Identity $UserPrincipalName -ErrorAction SilentlyContinue
-	if ($mb) {
-		if ($PSCmdlet.ShouldProcess("Mailbox:$UserPrincipalName", "Convert to Shared & configure")) {
-			Set-Mailbox    -Identity $UserPrincipalName -Type Shared
-			Set-Mailbox    -Identity $UserPrincipalName -HiddenFromAddressListsEnabled $true
-			Set-Mailbox    -Identity $UserPrincipalName `
-				-ForwardingSMTPAddress $ManagerEmail -DeliverToMailboxAndForward $true
-			Add-MailboxPermission -Identity $UserPrincipalName -User $ManagerEmail `
-				-AccessRights FullAccess -AutoMapping:$false
-			Set-MailboxAutoReplyConfiguration -Identity $UserPrincipalName `
-				-AutoReplyState Enabled `
-				-InternalMessage $internalMsg `
-				-ExternalMessage $externalMsg
-			Write-Log "Mailbox converted & auto-reply configured" "Info"
-		}
-	}
+    #
+    # 3) Mailbox conversion & config (both hybrid & cloud)
+    #
+    $mb = Get-Mailbox -Identity $UserPrincipalName -ErrorAction SilentlyContinue
+    if ($mb) {
+        if ($PSCmdlet.ShouldProcess("Mailbox:$UserPrincipalName", "Convert to Shared & configure")) {
+            Set-Mailbox    -Identity $UserPrincipalName -Type Shared
+            Set-Mailbox    -Identity $UserPrincipalName -HiddenFromAddressListsEnabled $true
+            Set-Mailbox    -Identity $UserPrincipalName `
+                -ForwardingSMTPAddress $ManagerEmail -DeliverToMailboxAndForward $true
+            Add-MailboxPermission -Identity $UserPrincipalName -User $ManagerEmail `
+                -AccessRights FullAccess -AutoMapping:$false
+            Set-MailboxAutoReplyConfiguration -Identity $UserPrincipalName `
+                -AutoReplyState Enabled `
+                -InternalMessage $internalMsg `
+                -ExternalMessage $externalMsg
+            Write-CustomLog "Mailbox converted & auto-reply configured" "Info"
+        }
+    }
 
-	#
-	# 4) OneDrive share + grant permissions
-	#
-	if ($PSCmdlet.ShouldProcess("OneDrive:$UserPrincipalName", "Share root with $ManagerEmail")) {
-		# invite
-		$inviteBody = @{
-			recipients     = @(@{email = $ManagerEmail })
-			requireSignIn  = $true
-			sendInvitation = $false
-			roles          = @("write")
-		}
-		Invoke-MgGraphRequest -Method POST `
-			-Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/drive/root/invite" `
-			-Body ($inviteBody | ConvertTo-Json -Depth 4)
+    #
+    # 4) OneDrive share + grant permissions
+    #
+    if ($PSCmdlet.ShouldProcess("OneDrive:$UserPrincipalName", "Share root with $ManagerEmail")) {
+        # invite
+        $inviteBody = @{
+            recipients     = @(@{email = $ManagerEmail })
+            requireSignIn  = $true
+            sendInvitation = $false
+            roles          = @("write")
+        }
+        Invoke-MgGraphRequest -Method POST `
+            -Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/drive/root/invite" `
+            -Body ($inviteBody | ConvertTo-Json -Depth 4)
 
-		# explicit create permission (the “gotcha”)
-		$permBody = @{
-			requireSignIn = $true
-			roles         = @("write")
-			grantees      = @(@{user = @{email = $ManagerEmail } })
-		}
-		Invoke-MgGraphRequest -Method POST `
-			-Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/drive/root/permissions" `
-			-Body ($permBody | ConvertTo-Json -Depth 4)
+        # explicit create permission (the “gotcha”)
+        $permBody = @{
+            requireSignIn = $true
+            roles         = @("write")
+            grantees      = @(@{user = @{email = $ManagerEmail } })
+        }
+        Invoke-MgGraphRequest -Method POST `
+            -Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/drive/root/permissions" `
+            -Body ($permBody | ConvertTo-Json -Depth 4)
 
-		Write-Log "OneDrive shared and permissions granted" "Info"
-	}
+        Write-CustomLog "OneDrive shared and permissions granted" "Info"
+    }
 
-	Write-Log "==== Offboarding complete for $UserPrincipalName ====" "Info"
+    Write-CustomLog "==== Offboarding complete for $UserPrincipalName ====" "Info"
 }
+
