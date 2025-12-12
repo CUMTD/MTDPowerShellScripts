@@ -24,7 +24,7 @@ jobs:
         shell: pwsh
 
       - name: Update ModuleVersion in .psd1
-        run: pwsh scripts/Update-ManifestVersion.ps1 -NewVersion "${{ steps.get_version.outputs.version }}"
+        run: pwsh Scripts/Update-ManifestVersion.ps1 -NewVersion "${{ steps.get_version.outputs.version }}"
         shell: pwsh
 
       - name: Commit updated .psd1 file

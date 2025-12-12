@@ -177,6 +177,8 @@ Import-Module "\$PWD/MTD-AdminTools.psd1"
 Import-Module MTD-AdminTools
 ```
 
+> **Note:** Run the installer from the root of the extracted release or cloned repo so it can locate the module files that sit alongside the `Scripts` directory.
+
 ### 🧪 Verify Installation
 
 ```powershell
