@@ -1,5 +1,5 @@
 #Requires -Version 7.0
-#Requires -Modules Microsoft.Graph.Authentication, Microsoft.Graph.Identity.Governance, Microsoft.Graph.Users, ExchangeOnlineManagement, ActiveDirectory
+#Requires -Modules Microsoft.Graph.Authentication, Microsoft.Graph.Identity.Governance, Microsoft.Graph.Users, ExchangeOnlineManagement
 #
 function Write-CustomLog {
     param (
@@ -114,6 +114,9 @@ If specified, the user account is deleted from Entra ID (and from AD if hybrid).
 .PARAMETER HybridUser
 If specified, treats the user as an on-prem synced (hybrid) user and attempts to disable or remove the AD account as well.
 
+.PARAMETER ActiveDirectoryServer
+Optional. Specifies the Active Directory domain controller (FQDN or IP) to use for on-prem operations when `-HybridUser` is set.
+
 .EXAMPLE
 Disable-MtdUser -RunAsUser admin@mtd.org -UserPrincipalName jdoe@mtd.org -ManagerEmail supervisor@mtd.org -HybridUser
 
@@ -152,7 +155,9 @@ function Disable-MtdUser {
         [string]$ManagerEmail,
 
         [switch]$DeleteAccount,
-        [switch]$HybridUser
+        [switch]$HybridUser,
+
+        [string]$ActiveDirectoryServer
     )
 
     Write-CustomLog "==== Begin offboarding $UserPrincipalName ====" "Info"
@@ -161,6 +166,21 @@ function Disable-MtdUser {
     if ($HybridUser) {
         Write-CustomLog "Hybrid mode: prompting for on‑prem AD admin credentials" "Info"
         $OnPremCred = Get-Credential -Message "Enter on‑prem AD admin credentials"
+        $env:ADPS_LoadDefaultDrive = 0
+        try {
+            if (-not (Get-Module -Name ActiveDirectory)) {
+                Import-Module ActiveDirectory -ErrorAction Stop
+            }
+            $adCommandCommon = @{ Credential = $OnPremCred }
+            if ($ActiveDirectoryServer) {
+                $adCommandCommon.Server = $ActiveDirectoryServer
+                Write-CustomLog "Using Active Directory server $ActiveDirectoryServer" "Verbose"
+            }
+        }
+        catch {
+            Write-CustomLog "Failed to load ActiveDirectory module: $_" "Error"
+            throw
+        }
     }
 
     Connect-MicrosoftService -RunAsUser $RunAsUser
@@ -180,7 +200,7 @@ function Disable-MtdUser {
         # Hybrid: delete on-prem + Entra ID
         if ($HybridUser) {
             if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Remove on-prem AD user")) {
-                Remove-ADUser -Identity $UserPrincipalName -Credential $OnPremCred -Confirm:$false
+                Remove-ADUser @adCommandCommon -Identity $UserPrincipalName -Confirm:$false
                 Write-CustomLog "On-prem AD user deleted" "Info"
             }
         }
@@ -194,8 +214,8 @@ function Disable-MtdUser {
         # Hybrid disable
         if ($HybridUser) {
             if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Disable on-prem AD user")) {
-                Disable-ADAccount -Identity $UserPrincipalName -Credential $OnPremCred
-                Set-ADUser -Identity $UserPrincipalName -Add @{msExchHideFromAddressLists = "TRUE" } -Credential $OnPremCred
+                Disable-ADAccount @adCommandCommon -Identity $UserPrincipalName
+                Set-ADUser @adCommandCommon -Identity $UserPrincipalName -Add @{msExchHideFromAddressLists = "TRUE" }
                 Write-CustomLog "On-prem AD user disabled & hidden from GAL" "Info"
             }
         }
@@ -212,10 +232,10 @@ function Disable-MtdUser {
     # 2) Remove from groups
     #
     if ($HybridUser) {
-        $localGroups = Get-ADPrincipalGroupMembership -Identity $UserPrincipalName -Credential $OnPremCred
+        $localGroups = Get-ADPrincipalGroupMembership @adCommandCommon -Identity $UserPrincipalName
         foreach ($g in $localGroups) {
             if ($PSCmdlet.ShouldProcess("AD Group:$($g.SamAccountName)", "Remove $UserPrincipalName")) {
-                Remove-ADGroupMember -Identity $g.SamAccountName -Members $UserPrincipalName -Credential $OnPremCred -Confirm:$false
+                Remove-ADGroupMember @adCommandCommon -Identity $g.SamAccountName -Members $UserPrincipalName -Confirm:$false
                 Write-CustomLog "Removed from local AD group $($g.SamAccountName)" "Debug"
             }
         }
