@@ -11,10 +11,12 @@ function Write-CustomLog {
     $entry = "$ts [$Level] $Message"
     Add-Content -Path $Path -Value $entry
     switch ($Level) {
-        "Error" { $color = "Red" }; "Warning" { $color = "Yellow" }; "Info" { $color = "Cyan" }
-        "Debug" { $color = "Gray" }; "Verbose" { $color = "DarkGray" }
+        "Error" { Write-Error $entry; break }
+        "Warning" { Write-Warning $entry; break }
+        "Debug" { Write-Debug $entry; break }
+        "Verbose" { Write-Verbose $entry; break }
+        default { Write-Information $entry -InformationAction Continue }
     }
-    Write-Output $entry -ForegroundColor $color
 }
 
 function Get-StrongPassword {
