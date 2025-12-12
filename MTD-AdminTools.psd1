@@ -51,8 +51,42 @@
 	# Processor architecture (None, X86, Amd64) required by this module
 	# ProcessorArchitecture = ''
 
-	# Modules that must be imported into the global environment prior to importing this module
-	# RequiredModules = @()
+        # Modules that must be imported into the global environment prior to importing this module
+        RequiredModules     = @(
+                # Microsoft Graph (pinned to avoid assembly mismatches)
+                @{
+                        ModuleName    = 'Microsoft.Graph.Authentication'
+                        ModuleVersion = '2.33.0'
+                },
+                @{
+                        ModuleName    = 'Microsoft.Graph.DeviceManagement'
+                        ModuleVersion = '2.33.0'
+                },
+                @{
+                        ModuleName    = 'Microsoft.Graph.Users'
+                        ModuleVersion = '2.33.0'
+                },
+                @{
+                        ModuleName    = 'Microsoft.Graph.Groups'
+                        ModuleVersion = '2.33.0'
+                },
+                @{
+                        ModuleName    = 'Microsoft.Graph.Identity.Governance'
+                        ModuleVersion = '2.33.0'
+                },
+
+                # SharePoint Online
+                @{
+                        ModuleName    = 'PnP.PowerShell'
+                        ModuleVersion = '3.1.0'
+                },
+
+                # Exchange Online
+                @{
+                        ModuleName    = 'ExchangeOnlineManagement'
+                        ModuleVersion = '3.9.0'
+                }
+        )
 
 	# Assemblies that must be loaded prior to importing this module
 	# RequiredAssemblies = @()
