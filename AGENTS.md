@@ -8,6 +8,7 @@ This repo is a custom PowerShell **module** for managing MTD systems and account
 - Follow the formatting and style conventions in `.editorconfig`.
 - Avoid using `Write-Host` instead use `Write-Output `, `Write-Verbose`, or `Write-Information`.
 - Use approved PowerShell verbs. Follow other common PowerShell conventions.
+- Add `#Requires -Version <VERSION>` and `#Requires -Modules <MODULE>` to the beginning of script files as appropriate.
 
 ## PnP.PowerShell (SharePoint/OneDrive)
 
