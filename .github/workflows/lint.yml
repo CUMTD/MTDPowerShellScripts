@@ -55,10 +55,17 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $settingsPath = Join-Path $PWD "PSScriptAnalyzerSettings.psd1"
-          $settingsArg = @()
-          if (Test-Path $settingsPath) { $settingsArg = @("-Settings", $settingsPath) }
 
-          $results = Invoke-ScriptAnalyzer -Path "Public" -Recurse @settingsArg
+          $params = @{
+            Path    = "Public"
+            Recurse = $true
+          }
+
+          if (Test-Path $settingsPath) {
+            $params.Settings = $settingsPath
+          }
+
+          $results = Invoke-ScriptAnalyzer @params
 
           if ($results) {
             $results | Sort-Object Severity, RuleName, ScriptName |
