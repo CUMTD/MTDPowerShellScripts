@@ -1,6 +1,7 @@
 name: PowerShell Lint (Public)
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "Public/**/*.ps1"
