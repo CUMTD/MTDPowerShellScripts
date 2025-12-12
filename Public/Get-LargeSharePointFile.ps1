@@ -13,6 +13,9 @@
   The full URL to the SharePoint site to scan (e.g. https://<your-tenant>-admin.sharepoint.com).
   Required if scanning all sites.
 
+.PARAMETER ClientId
+  The Entra app registration (Client) ID to use when connecting with PnP.PowerShell.
+
 .PARAMETER SiteUrl
   The full URL to a specific SharePoint site to scan (e.g. https://<your-tenant>.sharepoint.com/sites/YOURSITE).
   If provided, only this site will be scanned.
@@ -42,6 +45,10 @@ function Get-LargeSharePointFile {
         [ValidateNotNullOrEmpty()]
         [string]$SharePointAdminUrl,
 
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$ClientId,
+
         [Parameter()]
         [ValidateRange(1, [int]::MaxValue)]
         [int]$SizeThresholdMB = 500
@@ -50,7 +57,7 @@ function Get-LargeSharePointFile {
     # figure out which set of sites to scan
     if ($PSCmdlet.ParameterSetName -eq 'Admin') {
         Write-Verbose "Connecting to tenant admin: $SharePointAdminUrl"
-        Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
+        Connect-PnPOnline -Url $SharePointAdminUrl -Interactive -ClientId $ClientId
         $targetSites = (Get-PnPTenantSite).Url
     }
     else {
@@ -61,8 +68,8 @@ function Get-LargeSharePointFile {
     Write-Verbose "Filtering for files > $SizeThresholdMB MB ($thresholdBytes bytes)"
 
     foreach ($url in $targetSites) {
-        Write-Output "🔍 Scanning $url" -ForegroundColor Cyan
-        Connect-PnPOnline -Url $url -UseWebLogin
+        Write-Information "🔍 Scanning $url" -InformationAction Continue
+        Connect-PnPOnline -Url $url -Interactive -ClientId $ClientId
 
         # get all doc-libs
         $libs = Get-PnPList -Includes BaseTemplate, Hidden | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }

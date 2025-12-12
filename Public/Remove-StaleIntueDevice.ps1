@@ -52,7 +52,7 @@ function Remove-StaleIntuneDevice {
             if ($PSCmdlet.ShouldProcess($deviceName, "Remove device with Id [$deviceId]")) {
                 try {
                     Remove-MgDeviceManagementManagedDevice -ManagedDeviceId $deviceId -ErrorAction Stop
-                    Write-Output "🗑️ Removed device: $deviceName (Id: $deviceId)" -ForegroundColor Red
+                    Write-Information "🗑️ Removed device: $deviceName (Id: $deviceId)" -InformationAction Continue
                 }
                 catch {
                     Write-Warning "⚠️ Failed to remove device $deviceName (Id: $deviceId). Error: $_"
