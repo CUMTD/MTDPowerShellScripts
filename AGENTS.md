@@ -48,4 +48,4 @@ Run formatter (example):
 
 1. `Install-Module PSScriptAnalyzer -Scope CurrentUser`
 2. `Import-Module PSScriptAnalyzer`
-3. Run `Scripts\Format-Scripts.ps1`
+3. Run `Scripts\Format-PowerShellScripts.ps1`
