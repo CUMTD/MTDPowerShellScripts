@@ -29,7 +29,7 @@
 	# Description of the functionality provided by this module
 	Description          = 'PowerShell tools for managing MTD''s tech.'
 
-	ModuleVersion        = '1.0.0'
+	ModuleVersion = '1.2.0'
 
 	# Minimum version of the PowerShell engine required by this module
 	PowerShellVersion    = '7.0'
