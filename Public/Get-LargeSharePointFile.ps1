@@ -21,17 +21,17 @@
     File size threshold in megabytes (default: 500 MB).
 
 .EXAMPLE
-    Get-LargeSharePointFiles -SiteUrl "https://<your-tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
+	Get-LargeSharePointFile -SiteUrl "https://<your-tenant>-admin.sharepoint.com" -SizeThresholdMB 1024
 
 .EXAMPLE
-	Get-LargeSharePointFiles -SiteUrl "https://<your-tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
+	Get-LargeSharePointFile -SiteUrl "https://<your-tenant>.sharepoint.com/sites/YOURSITE" -SizeThresholdMB 1024
 
 .NOTES
     Author: Ryan Blackman
     Created: 2025-03-19
 	Updated: 2025-05-14
 #>
-function Get-LargeSharePointFiles {
+function Get-LargeSharePointFile {
 	[CmdletBinding(DefaultParameterSetName = 'Single')]
 	param (
 		[Parameter(ParameterSetName = 'Single', Mandatory = $true)]
@@ -60,7 +60,7 @@ function Get-LargeSharePointFiles {
 	Write-Verbose "Filtering for files > $SizeThresholdMB MB ($thresholdBytes bytes)"
 
 	foreach ($url in $targetSites) {
-		Write-Host "🔍 Scanning $url" -ForegroundColor Cyan
+		Write-Output "🔍 Scanning $url" -ForegroundColor Cyan
 		Connect-PnPOnline -Url $url -UseWebLogin
 
 		# get all doc-libs

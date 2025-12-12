@@ -1,0 +1,82 @@
+name: PowerShell Lint (Public)
+
+on:
+  pull_request:
+    paths:
+      - "Public/**/*.ps1"
+      - "Public/**/*.psm1"
+      - "Public/**/*.psd1"
+  push:
+    branches: [main]
+    paths:
+      - "Public/**/*.ps1"
+      - "Public/**/*.psm1"
+      - "Public/**/*.psd1"
+
+jobs:
+  lint:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup PowerShell modules
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          Import-Module PSScriptAnalyzer -Force
+
+      - name: Format-check Public scripts (Invoke-Formatter)
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+
+          $files = Get-ChildItem -Path "Public" -Recurse -File |
+            Where-Object { $_.Extension -in @('.ps1', '.psm1', '.psd1') }
+
+          if (-not $files) {
+            Write-Host "No PowerShell files found under Public/."
+            exit 0
+          }
+
+          foreach ($f in $files) {
+            $raw = Get-Content -Path $f.FullName -Raw
+            $formatted = Invoke-Formatter -ScriptDefinition $raw
+
+            if ($formatted -ne $raw) {
+              # Apply formatting to the working tree so we can show a diff in CI
+              Set-Content -Path $f.FullName -Value $formatted -Encoding utf8NoBOM
+              Write-Host "Formatted: $($f.FullName)"
+            }
+          }
+
+          $changes = git status --porcelain
+          if ($changes) {
+            $changes
+            git --no-pager diff
+            throw "Formatting changes detected. Please run the formatter locally and commit the results."
+          }
+
+      - name: PSScriptAnalyzer (Public scripts)
+        shell: pwsh
+        run: |
+          Set-StrictMode -Version Latest
+          $ErrorActionPreference = 'Stop'
+
+          $settingsPath = Join-Path $PWD "PSScriptAnalyzerSettings.psd1"
+          $settingsArg = @()
+          if (Test-Path $settingsPath) { $settingsArg = @("-Settings", $settingsPath) }
+
+          $results = Invoke-ScriptAnalyzer -Path "Public" -Recurse @settingsArg
+
+          if ($results) {
+            $results | Sort-Object Severity, RuleName, ScriptName |
+              Format-Table -AutoSize Severity, RuleName, ScriptName, Line, Message
+
+            throw "PSScriptAnalyzer reported issues."
+          }

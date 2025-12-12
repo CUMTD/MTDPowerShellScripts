@@ -80,7 +80,7 @@ function Set-SharePointRetention {
 		[string]$SiteUrl
 	)
 
-	Write-Host "🔗 Connecting to admin: $SharePointAdminUrl" -ForegroundColor Cyan
+	Write-Output "🔗 Connecting to admin: $SharePointAdminUrl" -ForegroundColor Cyan
 	Connect-PnPOnline -Url $SharePointAdminUrl -UseWebLogin
 
 	# Build site list
@@ -92,7 +92,7 @@ function Set-SharePointRetention {
 			continue
 		}
 
-		Write-Host "⚙️  Applying retention on $url" -ForegroundColor Yellow
+		Write-Output "⚙️  Applying retention on $url" -ForegroundColor Yellow
 		Connect-PnPOnline -Url $url -UseWebLogin
 
 		# Always include the three version params in Custom mode (they have defaults)
@@ -107,8 +107,8 @@ function Set-SharePointRetention {
 		if ($ApplyToNewDocumentLibraries) { $splat.ApplyToNewDocumentLibraries = $true }
 
 		Set-PnPSiteVersionPolicy @splat
-		Write-Host "✔ Done for $url" -ForegroundColor Green
+		Write-Output "✔ Done for $url" -ForegroundColor Green
 	}
 
-	Write-Host "🎉 All done." -ForegroundColor Cyan
+	Write-Output "🎉 All done." -ForegroundColor Cyan
 }

@@ -32,13 +32,17 @@
 		"editor.suggest.insertMode": "replace"
 	},
 	"cSpell.words": [
+		"alphanum",
 		"commitish",
 		"diffable",
 		"Entra",
+		"Helpdesk",
 		"Intue",
 		"Intune",
+		"pscustomobject",
 		"pwsh",
-		"softprops"
+		"softprops",
+		"storman"
 	],
 	"editor.codeActionsOnSave": {
 		"source.organizeImports": "always"

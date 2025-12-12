@@ -23,7 +23,7 @@
     Author: Ryan Blackman
     Created: 2025-03-19
 #>
-function Remove-StaleIntuneDevices {
+function Remove-StaleIntuneDevice {
 	[CmdletBinding(SupportsShouldProcess = $true)]
 	param (
 		[Parameter(
@@ -52,7 +52,7 @@ function Remove-StaleIntuneDevices {
 			if ($PSCmdlet.ShouldProcess($deviceName, "Remove device with Id [$deviceId]")) {
 				try {
 					Remove-MgDeviceManagementManagedDevice -ManagedDeviceId $deviceId -ErrorAction Stop
-					Write-Host "🗑️ Removed device: $deviceName (Id: $deviceId)" -ForegroundColor Red
+					Write-Output "🗑️ Removed device: $deviceName (Id: $deviceId)" -ForegroundColor Red
 				} catch {
 					Write-Warning "⚠️ Failed to remove device $deviceName (Id: $deviceId). Error: $_"
 				}

@@ -2,7 +2,7 @@ param (
 	[string]$TargetPath = "$env:ProgramFiles\WindowsPowerShell\Modules\MTD-AdminTools"
 )
 
-Write-Host "🔧 Installing MTD-AdminTools module to: $TargetPath" -ForegroundColor Cyan
+Write-Output "🔧 Installing MTD-AdminTools module to: $TargetPath" -ForegroundColor Cyan
 
 # Warn if module is currently loaded
 $loaded = Get-Module -Name "MTD-AdminTools" -ErrorAction SilentlyContinue
@@ -14,10 +14,10 @@ if ($loaded) {
 
 # Check for existing install
 if (Test-Path $TargetPath) {
-	Write-Host "⚠️ Existing version found at $TargetPath" -ForegroundColor Yellow
+	Write-Output "⚠️ Existing version found at $TargetPath" -ForegroundColor Yellow
 	$confirm = Read-Host "Do you want to overwrite the existing version? (Y/N)"
 	if ($confirm -ne 'Y') {
-		Write-Host "❌ Install cancelled."
+		Write-Output "❌ Install cancelled."
 		return
 	}
 
@@ -27,7 +27,7 @@ if (Test-Path $TargetPath) {
 
 # Ensure target directory exists
 if (-not (Test-Path $TargetPath)) {
-	Write-Host "Creating target directory: $TargetPath" -ForegroundColor Cyan
+	Write-Output "Creating target directory: $TargetPath" -ForegroundColor Cyan
 	New-Item -ItemType Directory -Path $TargetPath -Force | Out-Null
 }
 
@@ -52,10 +52,10 @@ foreach ($item in $itemsToCopy) {
 }
 
 #  ─── UNBLOCK DOWNLOADED SCRIPTS ───────────────────────────────────────────────
-Write-Host "🔓 Unblocking all downloaded module files…" -ForegroundColor Cyan
+Write-Output "🔓 Unblocking all downloaded module files…" -ForegroundColor Cyan
 Get-ChildItem -Path $TargetPath -Recurse -File | Unblock-File
 
-Write-Host ""
-Write-Host "✅ MTD-AdminTools module installed to: $TargetPath" -ForegroundColor Green
-Write-Host "ℹ️  You can now load the module with:" -ForegroundColor Yellow
-Write-Host "    Import-Module MTD-AdminTools"
+Write-Output ""
+Write-Output "✅ MTD-AdminTools module installed to: $TargetPath" -ForegroundColor Green
+Write-Output "ℹ️  You can now load the module with:" -ForegroundColor Yellow
+Write-Output "    Import-Module MTD-AdminTools"

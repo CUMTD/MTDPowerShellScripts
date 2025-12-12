@@ -13,9 +13,9 @@ function Get-SiteUrlFromItemUrl([string]$itemUrl) {
 
 function Get-ServerRelativeUrl([string]$itemUrl) {
 	$uri = [Uri]$itemUrl
-	return [System.Web.HttpUtility]::UrlDecode($uri.AbsolutePath)
+	# PS7-friendly URL decode (avoids System.Web dependency)
+	return [Uri]::UnescapeDataString($uri.AbsolutePath)
 }
-
 
 <#
 .SYNOPSIS
@@ -44,12 +44,11 @@ function New-DispositionReport {
 
 	Import-Module PnP.PowerShell -ErrorAction Stop
 
-	Write-Host "Importing disposition CSV from $DispositionCsvPath..." -ForegroundColor Cyan
+	Write-Output "Importing disposition CSV from $DispositionCsvPath..." -ForegroundColor Cyan
 	$rows = Import-Csv -Path $DispositionCsvPath
 
 	if (-not $rows) {
-		Write-Error "No rows found in CSV. Check the path or file contents."
-		exit 1
+		throw "No rows found in CSV. Check the path or file contents."
 	}
 
 	# Cache connections per site to avoid reconnecting constantly
@@ -60,8 +59,7 @@ function New-DispositionReport {
 	# Key format: "<Label>||<Year>"
 	$summaryTable = @{}
 
-
-	Write-Host "Processing $($rows.Count) items..." -ForegroundColor Cyan
+	Write-Output "Processing $($rows.Count) items..." -ForegroundColor Cyan
 
 	$counter = 0
 
@@ -85,7 +83,7 @@ function New-DispositionReport {
 
 		# Ensure we have a connection for this site
 		if (-not $siteConnections.ContainsKey($siteUrl)) {
-			Write-Host "Connecting to $siteUrl..." -ForegroundColor Yellow
+			Write-Output "Connecting to $siteUrl..." -ForegroundColor Yellow
 			try {
 				Connect-PnPOnline -Url $siteUrl -Interactive -ApplicationId $PowerShellAppId -ErrorAction Stop
 				$siteConnections[$siteUrl] = $true
@@ -126,14 +124,17 @@ function New-DispositionReport {
 			}
 		}
 
+		# Use consistent year token for both detail + summary
+		$yearKey = if ($createdYear) { $createdYear.ToString() } else { "(Unknown Year)" }
+
 		$sizeMB = [math]::Round($sizeBytes / 1MB, 3)
 		$sizeGB = [math]::Round($sizeBytes / 1GB, 3)
 
-		# Add to detail list (now includes Created + CreatedYear)
+		# Add to detail list (includes Created + CreatedYear)
 		$detailResults.Add([PSCustomObject]@{
 				Label       = $label
 				Created     = $created
-				CreatedYear = $createdYear
+				CreatedYear = $yearKey
 				ItemUrl     = $url
 				SiteUrl     = $siteUrl
 				SizeBytes   = $sizeBytes
@@ -142,7 +143,6 @@ function New-DispositionReport {
 			})
 
 		# Accumulate in summary table by Label + Year
-		$yearKey = if ($createdYear) { $createdYear.ToString() } else { "(Unknown Year)" }
 		$summaryKey = "$label||$yearKey"
 
 		if (-not $summaryTable.ContainsKey($summaryKey)) {
@@ -158,17 +158,17 @@ function New-DispositionReport {
 		$summaryTable[$summaryKey].TotalBytes += $sizeBytes
 
 		if ($counter % 50 -eq 0) {
-			Write-Host "Processed $counter items..." -ForegroundColor DarkGray
+			Write-Output "Processed $counter items..." -ForegroundColor DarkGray
 		}
 	}
 
-	Write-Host "Finished processing items. Writing output..." -ForegroundColor Cyan
+	Write-Output "Finished processing items. Writing output..." -ForegroundColor Cyan
 
 	# Write detail CSV
 	$detailResults |
 	Sort-Object Label, CreatedYear, Created, ItemUrl |
 	Export-Csv -Path $DetailOutputCsvPath -NoTypeInformation -Encoding UTF8
-	Write-Host "Detail file written to $DetailOutputCsvPath" -ForegroundColor Green
+	Write-Output "Detail file written to $DetailOutputCsvPath" -ForegroundColor Green
 
 	# Build summary objects (Label + Year)
 	$summaryResults = foreach ($entry in $summaryTable.Values) {
@@ -185,7 +185,7 @@ function New-DispositionReport {
 	$summaryResults |
 	Sort-Object Label, CreatedYear |
 	Export-Csv -Path $SummaryOutputCsvPath -NoTypeInformation -Encoding UTF8
-	Write-Host "Summary file written to $SummaryOutputCsvPath" -ForegroundColor Green
+	Write-Output "Summary file written to $SummaryOutputCsvPath" -ForegroundColor Green
 
-	Write-Host "Done." -ForegroundColor Cyan
+	Write-Output "Done." -ForegroundColor Cyan
 }

@@ -1,6 +1,6 @@
 #Requires -Version 7.0
 #
-function Write-Log {
+function Write-CustomLog {
 	param (
 		[Parameter(Mandatory)][string]$Message,
 		[ValidateSet("Error", "Warning", "Info", "Debug", "Verbose")]
@@ -14,10 +14,10 @@ function Write-Log {
 		"Error" { $color = "Red" }; "Warning" { $color = "Yellow" }; "Info" { $color = "Cyan" }
 		"Debug" { $color = "Gray" }; "Verbose" { $color = "DarkGray" }
 	}
-	Write-Host $entry -ForegroundColor $color
+	Write-Output $entry -ForegroundColor $color
 }
 
-function Generate-StrongPassword {
+function New-StrongPassword {
 	param (
 		[int]$Length = 30,
 		[int]$NonAlphanumericLength = 8
@@ -42,27 +42,27 @@ function Generate-StrongPassword {
 	return ( -join (($alphaPart + $specPart).ToCharArray() | Sort-Object { Get-Random }))
 }
 
-function Activate-PIMRole {
+function Enable-PIMRole {
 	param (
 		[Parameter(Mandatory)][string]$RoleName,
 		[Parameter(Mandatory)][string]$UserObjectId
 	)
 	try {
-		Write-Log "Activating PIM role '$RoleName' for object $UserObjectId" "Verbose"
+		Write-CustomLog "Enabling PIM role '$RoleName' for object $UserObjectId" "Verbose"
 		$assignment = Get-MgPrivilegedRoleAssignment `
 			-Filter "principalId eq '$UserObjectId' and roleDefinitionId eq '$RoleName'"
 		if ($assignment) {
 			Enable-MgPrivilegedRoleAssignment -PrivilegedRoleAssignmentId $assignment.Id
-			Write-Log "PIM role activated: $RoleName" "Info"
+			Write-CustomLog "PIM role enabled: $RoleName" "Info"
 		} else {
-			Write-Log "No PIM assignment found for $RoleName" "Warning"
+			Write-CustomLog "No PIM assignment found for $RoleName" "Warning"
 		}
 	} catch {
-		Write-Log "Error activating PIM: $_" "Error"
+		Write-CustomLog "Error enabling PIM: $_" "Error"
 	}
 }
 
-function Connect-MicrosoftServices {
+function Connect-MicrosoftService {
 	param (
 		[Parameter(Mandatory)]
 		[ValidatePattern('^[^@\s]+@[^@\s]+\.[^@\s]+$')]
@@ -77,7 +77,7 @@ function Connect-MicrosoftServices {
 	Connect-MgGraph -Scopes "PrivilegedAccess.ReadWrite.AzureADGroup" -UseDeviceAuthentication
 	$user = Get-MgUser -UserId $RunAsUser
 	foreach ($role in $PIMRoles) {
-		Activate-PIMRole -RoleName $role -UserObjectId $user.Id
+		Enable-PIMRole -RoleName $role -UserObjectId $user.Id
 	}
 	# 2) Connect with full Graph scopes
 	Connect-MgGraph -Scopes `
@@ -150,15 +150,15 @@ function Disable-MtdUser {
 		[switch]$HybridUser
 	)
 
-	Write-Log "==== Begin offboarding $UserPrincipalName ====" "Info"
+	Write-CustomLog "==== Begin offboarding $UserPrincipalName ====" "Info"
 
 	# Prompt for on-prem credentials if hybrid
 	if ($HybridUser) {
-		Write-Log "Hybrid mode: prompting for on‑prem AD admin credentials" "Info"
+		Write-CustomLog "Hybrid mode: prompting for on‑prem AD admin credentials" "Info"
 		$OnPremCred = Get-Credential -Message "Enter on‑prem AD admin credentials"
 	}
 
-	Connect-MicrosoftServices -RunAsUser $RunAsUser
+	Connect-MicrosoftService -RunAsUser $RunAsUser
 
 	# Fetch target & manager objects for names
 	$target = Get-MgUser -UserId $UserPrincipalName
@@ -176,13 +176,13 @@ function Disable-MtdUser {
 		if ($HybridUser) {
 			if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Remove on-prem AD user")) {
 				Remove-ADUser -Identity $UserPrincipalName -Credential $OnPremCred -Confirm:$false
-				Write-Log "On-prem AD user deleted" "Info"
+				Write-CustomLog "On-prem AD user deleted" "Info"
 			}
 		}
 		# Entra ID deletion
 		if ($PSCmdlet.ShouldProcess("Entra ID:$UserPrincipalName", "Remove Entra ID user")) {
 			Remove-MgUser -UserId $UserPrincipalName -Confirm:$false
-			Write-Log "Entra ID user deleted" "Info"
+			Write-CustomLog "Entra ID user deleted" "Info"
 		}
 	} else {
 		# Hybrid disable
@@ -190,7 +190,7 @@ function Disable-MtdUser {
 			if ($PSCmdlet.ShouldProcess("AD:$UserPrincipalName", "Disable on-prem AD user")) {
 				Disable-ADAccount -Identity $UserPrincipalName -Credential $OnPremCred
 				Set-ADUser -Identity $UserPrincipalName -Add @{msExchHideFromAddressLists = "TRUE" } -Credential $OnPremCred
-				Write-Log "On-prem AD user disabled & hidden from GAL" "Info"
+				Write-CustomLog "On-prem AD user disabled & hidden from GAL" "Info"
 			}
 		}
 		# Entra ID disable
@@ -198,7 +198,7 @@ function Disable-MtdUser {
 			Update-MgUser -UserId $UserPrincipalName -AccountEnabled:$false
 			Invoke-MgGraphRequest -Method POST `
 				-Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/revokeSignInSessions"
-			Write-Log "Entra ID account disabled & sessions revoked" "Info"
+			Write-CustomLog "Entra ID account disabled & sessions revoked" "Info"
 		}
 	}
 
@@ -210,7 +210,7 @@ function Disable-MtdUser {
 		foreach ($g in $localGroups) {
 			if ($PSCmdlet.ShouldProcess("AD Group:$($g.SamAccountName)", "Remove $UserPrincipalName")) {
 				Remove-ADGroupMember -Identity $g.SamAccountName -Members $UserPrincipalName -Credential $OnPremCred -Confirm:$false
-				Write-Log "Removed from local AD group $($g.SamAccountName)" "Debug"
+				Write-CustomLog "Removed from local AD group $($g.SamAccountName)" "Debug"
 			}
 		}
 	}
@@ -220,7 +220,7 @@ function Disable-MtdUser {
 	foreach ($g in $azureGroups) {
 		if ($PSCmdlet.ShouldProcess("Entra Group:$($g.DisplayName)", "Remove $UserPrincipalName")) {
 			Remove-MgGroupMember -GroupId $g.Id -MemberId $UserPrincipalName -ErrorAction SilentlyContinue
-			Write-Log "Removed from Entra group $($g.DisplayName)" "Debug"
+			Write-CustomLog "Removed from Entra group $($g.DisplayName)" "Debug"
 		}
 	}
 
@@ -240,7 +240,7 @@ function Disable-MtdUser {
 				-AutoReplyState Enabled `
 				-InternalMessage $internalMsg `
 				-ExternalMessage $externalMsg
-			Write-Log "Mailbox converted & auto-reply configured" "Info"
+			Write-CustomLog "Mailbox converted & auto-reply configured" "Info"
 		}
 	}
 
@@ -269,8 +269,8 @@ function Disable-MtdUser {
 			-Uri "https://graph.microsoft.com/v1.0/users/$UserPrincipalName/drive/root/permissions" `
 			-Body ($permBody | ConvertTo-Json -Depth 4)
 
-		Write-Log "OneDrive shared and permissions granted" "Info"
+		Write-CustomLog "OneDrive shared and permissions granted" "Info"
 	}
 
-	Write-Log "==== Offboarding complete for $UserPrincipalName ====" "Info"
+	Write-CustomLog "==== Offboarding complete for $UserPrincipalName ====" "Info"
 }

@@ -17,7 +17,7 @@
     Author: Ryan Blackman
     Created: 2025-03-19
 #>
-function Get-StaleIntuneDevices {
+function Get-StaleIntuneDevice {
 	[CmdletBinding()]
 	param (
 		[int]$DaysInactive = 90

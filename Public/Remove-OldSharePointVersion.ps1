@@ -18,17 +18,17 @@
 	Launches the SharePoint Storage Explorer after the script completes. Default is false.
 
 .EXAMPLE
-    Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -DaysToKeep 180 -WhatIf
+    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -DaysToKeep 180 -WhatIf
 
     Shows which file versions would be removed but doesn't actually remove them.
 
 .EXAMPLE
-    Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -Confirm
+    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -Confirm
 
     Prompts for confirmation before removing each old version.
 
 .EXAMPLE
-    Remove-OldSharePointVersions -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -LaunchStorageExplorer
+    Remove-OldSharePointVersion -SiteUrl "https://tenant.sharepoint.com/sites/MySite" -LaunchStorageExplorer
 
     Launch the SharePoint Storage Explorer after the script completes.
 
@@ -36,7 +36,7 @@
     Author: Ryan Blackman
     Created: 2025-03-19
 #>
-function Remove-OldSharePointVersions {
+function Remove-OldSharePointVersion {
 	[CmdletBinding(SupportsShouldProcess = $true)]
 	param (
 		[Parameter(Mandatory = $true)]
@@ -50,16 +50,16 @@ function Remove-OldSharePointVersions {
 	)
 
 
-	Write-Host "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
+	Write-Output "🔗 Connecting to $SiteUrl..." -ForegroundColor Cyan
 	Connect-PnPOnline -Url $SiteUrl
 
 	$cutoffDate = (Get-Date).AddDays(-$DaysToKeep)
-	Write-Host "🗓️  Removing versions older than $DaysToKeep days (before $($cutoffDate.ToShortDateString()))" -ForegroundColor Yellow
+	Write-Output "🗓️  Removing versions older than $DaysToKeep days (before $($cutoffDate.ToShortDateString()))" -ForegroundColor Yellow
 
 	$lists = Get-PnPList | Where-Object { $_.BaseTemplate -eq 101 -and $_.Hidden -eq $false }
 
 	foreach ($list in $lists) {
-		Write-Host "`n📁 Processing library: $($list.Title)" -ForegroundColor Cyan
+		Write-Output "`n📁 Processing library: $($list.Title)" -ForegroundColor Cyan
 		$items = Get-PnPListItem -List $list -PageSize 1000
 
 		foreach ($item in $items) {
@@ -81,7 +81,7 @@ function Remove-OldSharePointVersions {
 						"Delete old version (created before $($cutoffDate.ToShortDateString()))"
 					)) {
 					try {
-						Write-Host "🧹 Deleting version from $versionDate for $fileName" -ForegroundColor Gray
+						Write-Output "🧹 Deleting version from $versionDate for $fileName" -ForegroundColor Gray
 						$version.DeleteObject()
 					} catch {
 						Write-Warning "❌ Failed to delete version: $($_.Exception.Message)"
@@ -95,14 +95,14 @@ function Remove-OldSharePointVersions {
 			}
 		}
 
-		Write-Host "✅ Finished cleaning: $($list.Title)"
+		Write-Output "✅ Finished cleaning: $($list.Title)"
 	}
 
 	if ($LaunchStorageExplorer) {
-		Write-Host "🚀 Launching SharePoint Storage Explorer..." -ForegroundColor Cyan
+		Write-Output "🚀 Launching SharePoint Storage Explorer..." -ForegroundColor Cyan
 		$launchPath = "$($SiteUrl.TrimEnd('/'))/_layouts/15/storman.aspx"
 		Start-Process $launchPath
 	}
 
-	Write-Host "`n🎉 Cleanup complete for $SiteUrl" -ForegroundColor Green
+	Write-Output "`n🎉 Cleanup complete for $SiteUrl" -ForegroundColor Green
 }

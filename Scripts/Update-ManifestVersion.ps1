@@ -13,4 +13,4 @@ $contents = $contents -replace "ModuleVersion\s*=\s*'[^']*'", "ModuleVersion = '
 # Write the updated manifest back
 Set-Content -Path $manifestPath -Value $contents
 
-Write-Host "✅ Updated ModuleVersion in .psd1 to $NewVersion"
+Write-Output "✅ Updated ModuleVersion in .psd1 to $NewVersion"
